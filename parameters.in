@@ -32,13 +32,13 @@ $end
 % if grid program is used, then NPOINTS points are selected from each of the 
 % smaller rectangles specified in $gridparameters block.
 % if MCMC program is used, the NPOINTS is the total amount of points used in simulation
-%	NPOINTS = 100
 
 $mcparameters
 	DIM = 3
 	initial_point = 0.1 0.2 0.4
 	alpha = 7.0
 	subchain_length = 10
+	NPOINTS = 50 
 
 % upper bound for value of b (gunsight parameter)
 % in Bohrs: 8.0 bohrs \approx 4.0 A
@@ -47,7 +47,7 @@ $mcparameters
 $end
 
 $files
-	output_directory = results/mcmc_generator/100/ 
+	output_directory = results/mcmc_generator/50/
 	specfunc_filename = specfunc.txt
 	m2_filename = m2.txt
 	spectrum_filename = spectrum.txt

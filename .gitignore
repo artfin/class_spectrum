@@ -1,5 +1,5 @@
-.txt
-.o
-.oo
-.d
-.swp
+*.txt
+*.o
+*.oo
+*.d
+*.swp

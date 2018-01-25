@@ -114,7 +114,7 @@ void master_code( int world_size )
 
 	Parameters parameters;
 	FileReader fileReader( "parameters.in", &parameters ); 
-	//parameters.show_parameters();
+	parameters.show_parameters();
 
 	function<double(VectorXd)> target = bind( target_distribution, _1, parameters.RDIST, parameters.Temperature );
 	
@@ -211,8 +211,6 @@ void master_code( int world_size )
 		if ( received == parameters.NPOINTS )
 		{
 			double multiplier = 1.0 / parameters.NPOINTS; 
-			//cout << "multiplier: " << multiplier << endl;
-
 			classical.multiply_total( multiplier / ham_integral );
 
 			cout << ">> Saving spectrum" << endl << endl;
@@ -418,8 +416,6 @@ void slave_code( int world_rank )
 		// #####################################################
 		// length of dipole vector = number of samples
 		int npoints = dipz.size();
-
-		//cout << "FREQ_SIZE: " << FREQ_SIZE << endl;
 
 		// zeroing input arrays
 		fourier.zero_out_input( );

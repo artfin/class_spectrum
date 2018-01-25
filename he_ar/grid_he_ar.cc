@@ -205,16 +205,16 @@ void master_code( int world_size )
 	for ( int i = 1; i < world_size; i++ )
 	{
 		p = parameters.generate_uniform_point( B_CHUNKS_VECTOR[ b_chunk_counter ],
-												   B_CHUNKS_VECTOR[ b_chunk_counter + 1 ],
-												   V0_CHUNKS_VECTOR[ v0_chunk_counter ],
-												   V0_CHUNKS_VECTOR[ v0_chunk_counter + 1 ]);
+											   B_CHUNKS_VECTOR[ b_chunk_counter + 1 ],
+											   V0_CHUNKS_VECTOR[ v0_chunk_counter ],
+											   V0_CHUNKS_VECTOR[ v0_chunk_counter + 1 ]);
 		p.counter = sent; 
 			
-		//cout << "###" << endl;
-		//cout << "generated p.b: " << p.b << endl;
-		//cout << "generated p.v0: " << p.v0 << endl;
-		//cout << "p.counter: " << p.counter << endl;
-		//cout << "###" << endl;
+		// cout << "###" << endl;
+		// cout << "generated p.b: " << p.b << endl;
+		// cout << "generated p.v0: " << p.v0 << endl;
+		// cout << "p.counter: " << p.counter << endl;
+		// cout << "###" << endl;
 
 		MPI_Send( &p, 1, MPI_ICPoint, i, 0, MPI_COMM_WORLD );
 		sent++;
@@ -355,7 +355,7 @@ void master_code( int world_size )
 		if ( received % 10 == 0 )
 		{
 			ss << received;
-			classical.saving_procedure( parameters, freqs, name + ss.str() + ".txt" );
+			classical.saving_procedure( parameters, freqs, name + ss.str() + ".txt", "chunk" );
 			classical.zero_out_chunk();
 		}
 
