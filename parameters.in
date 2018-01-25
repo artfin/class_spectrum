@@ -36,7 +36,7 @@ $end
 $mcparameters
 	DIM = 3
 	initial_point = 0.1 0.2 0.4
-	alpha = 7.0
+	alpha = 0.01 
 	subchain_length = 10
 	NPOINTS = 150 
 

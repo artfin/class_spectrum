@@ -172,7 +172,7 @@ VectorXd MCMC_generator::generate_point( )
 					}
 
 					//cout << "x(" << i << ") = " << x(i)
-						 //<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
+							//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
 				}	
 
 				//cout << endl;	
