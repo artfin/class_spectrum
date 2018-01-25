@@ -32,8 +32,16 @@ public:
 	vector<pair<int, double>> to_wrap;
 	Parameters parameters;
 	Limits limits;
+	
+	Limits plimits;
+	bool set_plimits = false;
+	Limits* set_point_limits( void ) 
+	{ 
+		set_plimits = true;
+		return &plimits; 
+	}	
 
-	bool set_histograms;
+	bool set_histograms = false;
 	vector<gsl_histogram*> histograms;
 	vector<string> names;
 	const int NBINS = 100;
@@ -43,7 +51,7 @@ public:
 	Limits* set_histogram_limits( void ) { return &limits; }  
 	void allocate_histograms( vector<string>& names );
 
-	bool burnin_done;
+	bool burnin_done = false;
 
 	VectorXd current_point{ parameters.DIM };
 

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#SBATCH -J mc 
+#SBATCH -o mc.out 
+#SBATCH -e mc.out 
+#SBATCH -n 20 
+#SBATCH -p general
+#SBATCH --contiguous
+#SBATCH -t 0-04:00
+#SBATCH --mem-per-cpu=400
+
+srun -n $SLURM_NTASKS --mpi=pmi2 ./mcmc_he_ar

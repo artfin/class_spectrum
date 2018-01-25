@@ -164,7 +164,26 @@ VectorXd MCMC_generator::generate_point( )
 		if ( moves >= subchain_length && 
 			 gunsight < parameters.gunsight_upper_bound &&
 			 x(pR_index) < 0 )
+		{
 			point_found = true;
+			
+			if ( set_plimits )
+			{
+				// cout << ">> generated point: ";
+				
+				for ( size_t i = 0; i < parameters.DIM; i++ )
+				{
+					if ( x(i) > plimits.limits[i].ub || x(i) < plimits.limits[i].lb )
+						point_found  = false;
+				
+					//cout << "x(" << i << ") = " << x(i)
+					//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
+				}	
+
+				//cout << endl;	
+			}
+
+		}
 	}
 
 	if ( set_histograms )

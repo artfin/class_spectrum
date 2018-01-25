@@ -61,11 +61,15 @@ grid_he_ar: $(grid_he_ar_obj) $(grid_he_ar_objx) $(gear_diatom_obj)
 #########################################################################
 
 #########################################################################
+# $(@D) -- directory where current target $@ resides in
+#
 $(BUILDDIR)%.o: %.cpp 
+	@mkdir -p $(@D)	
 	@$(CCXX) $(CXXFLAGS) -c -MD $(st_libs) $(ld_libs) $(addprefix -I,$(SOURCE_DIRS)) $< -o $@
 	@echo ">> (g++) COMPILING $<...";
 
 $(BUILDDIR)%.oo: %.cc
+	@mkdir -p $(@D)	
 	@$(MPICCXX) $(CXXFLAGS) -c -MD $(st_libs) $(ld_libs) $(addprefix -I,$(SOURCE_DIRS)) $< -o $@
 	@echo ">> (mpic++) COMPILING $<...";
 

@@ -114,7 +114,7 @@ void master_code( int world_size )
 
 	Parameters parameters;
 	FileReader fileReader( "parameters.in", &parameters ); 
-	parameters.show_parameters();
+	//parameters.show_parameters();
 
 	function<double(VectorXd)> target = bind( target_distribution, _1, parameters.RDIST, parameters.Temperature );
 	
@@ -122,7 +122,7 @@ void master_code( int world_size )
 	integrand.set_limits()->add_limit( 0, "-inf", "+inf" )
 						  ->add_limit( 1, 0.0, 2.0 * M_PI )
 						  ->add_limit( 2, "-inf", "+inf" );
-	
+
 	Integrator integrator( integrand, 0 );
 	integrator.set_callback();
 	
@@ -149,18 +149,26 @@ void master_code( int world_size )
 	pair<int, double> p1(1, 2*M_PI); 
 	vector<pair<int, double>> to_wrap{ p1 };
 
+	// creating MCMC_generator object
 	MCMC_generator generator( target, parameters, to_wrap );
 	
+	// adding limits for coordinates of generated point
+	// pR = mu * vo => using v0_max \approx 5000 m/s => pR = 15, set pR(max) = 20.0
+	// b = pTheta/pR; b(max) = 12.0; set pT(max) = 250.0 
+	generator.set_point_limits()->add_limit(0, -20.0, 0.0)
+								->add_limit(1, 0.0, 2.0 * M_PI)
+								->add_limit(2, -250.0, 250.0);
+
+	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
+	generator.burnin( initial_point, 100000 );	
 	
 	// allocating histograms to store variables
-	generator.set_histogram_limits()->add_limit(0, -10.0, 10.0)
+	generator.set_histogram_limits()->add_limit(0, -20.0, 20.0)
 								    ->add_limit(1, 0.0, 2.0 * M_PI)
-								    ->add_limit(2, -300.0, 300.0); 
+								    ->add_limit(2, -250.0, 250.0); 
 	vector<string> names { "pR", "theta", "pT" };
 	generator.allocate_histograms( names );	
-
-	generator.burnin( initial_point, 100000 );	
 
 	// setting indeces of pR, Jx to calculate gunsight parameter
 	generator.pR_index = 0;

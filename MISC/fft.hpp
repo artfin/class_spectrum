@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
-
+#include <vector>
 #include <iostream>
 
 #define REALPART 0
