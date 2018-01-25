@@ -3,7 +3,7 @@
 CCXX = g++
 MPICCXX = mpic++
 
-CXXFLAGS = -std=c++11 -O3 -lstdc++ -lm
+CXXFLAGS = -std=c++11 -O2 -g -lstdc++ -lm
 
 BUILDDIR := obj/
 SOURCE_DIRS := ./DIP/ ./GEAR/ ./MISC/ ./POT/ ./he_ar/ 
@@ -32,7 +32,7 @@ ld_libs := $(link_fftw3) $(link_gsl)
 #
 # Gear files 
 #
-gear_diatom_src := awp.cpp basis_r.cpp fgauss.cpp gear_diatom.cpp t_dgls.cpp vmblock.cpp
+gear_diatom_src := awp.cpp basis_r.cpp fgauss.cpp gear_diatom.cpp vmblock.cpp
 gear_diatom_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(gear_diatom_src)))
 #########################################################################
 

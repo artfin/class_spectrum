@@ -28,10 +28,8 @@ static vector<pair<int,double>> DEFAULT_VECTOR;
 class MCMC_generator 
 {
 public:
-	int subchain_length;
 	vector<pair<int, double>> to_wrap;
 	Parameters parameters;
-	Limits limits;
 	
 	Limits plimits;
 	bool set_plimits = false;
@@ -41,14 +39,19 @@ public:
 		return &plimits; 
 	}	
 
-	bool set_histograms = false;
 	vector<gsl_histogram*> histograms;
 	vector<string> names;
 	const int NBINS = 100;
 	void gsl_histogram_normalize( gsl_histogram* h );
 	void save_histogram( gsl_histogram* h, const string& filename );
 
-	Limits* set_histogram_limits( void ) { return &limits; }  
+	bool set_histograms = false;
+	Limits limits;
+	Limits* set_histogram_limits( void ) 
+	{ 
+		set_histograms = true;
+		return &limits; 
+	}  
 	void allocate_histograms( vector<string>& names );
 
 	bool burnin_done = false;

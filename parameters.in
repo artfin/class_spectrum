@@ -38,7 +38,7 @@ $mcparameters
 	initial_point = 0.1 0.2 0.4
 	alpha = 7.0
 	subchain_length = 10
-	NPOINTS = 50 
+	NPOINTS = 150 
 
 % upper bound for value of b (gunsight parameter)
 % in Bohrs: 8.0 bohrs \approx 4.0 A

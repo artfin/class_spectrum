@@ -3,10 +3,9 @@
 MCMC_generator::MCMC_generator( std::function<double(VectorXd)> f,
 			   					Parameters& parameters,	
 								vector<pair<int, double>>& to_wrap ) : 
+		f(f),
 		parameters(parameters),
-		subchain_length(subchain_length),
-		to_wrap(to_wrap),
-		f(f)
+		to_wrap(to_wrap)
 {
 }
 
@@ -75,7 +74,6 @@ double MCMC_generator::wrapMax( const double& x, const double& max )
 
 void MCMC_generator::allocate_histograms( vector<string>& names )
 {
-	set_histograms = true;
 	this->names = names;
 
 	for ( size_t i = 0; i < limits.limits.size(); i++ )
@@ -135,7 +133,7 @@ VectorXd MCMC_generator::generate_point( )
 	double gunsight;
 	bool point_found = false;
 
-	while ( moves < parameters.subchain_length && !point_found )
+	while ( !point_found )
 	{
 		xnew = metro_step( x );
 
@@ -159,25 +157,22 @@ VectorXd MCMC_generator::generate_point( )
 			moves++;
 		}
 
-		gunsight = x(Jx_index) / x(pR_index);
-
-		if ( moves >= subchain_length && 
-			 gunsight < parameters.gunsight_upper_bound &&
-			 x(pR_index) < 0 )
+		if ( moves > parameters.subchain_length )
 		{
-			point_found = true;
-			
 			if ( set_plimits )
 			{
-				// cout << ">> generated point: ";
-				
+				//cout << ">> generated point: ";
+			
+				point_found = true;	
 				for ( size_t i = 0; i < parameters.DIM; i++ )
 				{
 					if ( x(i) > plimits.limits[i].ub || x(i) < plimits.limits[i].lb )
-						point_found  = false;
-				
+					{
+						point_found = false;
+					}
+
 					//cout << "x(" << i << ") = " << x(i)
-					//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
+						 //<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
 				}	
 
 				//cout << endl;	
