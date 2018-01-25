@@ -1,0 +1,56 @@
+$conditions
+	Temperature = 295.0
+$end
+
+$trajectory
+	% 20 Angstrom
+	RDIST = 37.794522509156565
+
+	% 5*10**(-16) s
+	sampling_time = 20.67068666828068
+
+	MaxTrajectoryLength = 131072
+	FREQ_MAX = 700.0
+$end
+
+% Buryak-Vigasin article
+% for the first version of spectrum calculation with 
+% grid (b, v0)
+% v0: 200 - 4600 m/s
+% b: 0.0 - 4.0 A
+
+$gridparameters
+	V0_MIN = 200.0
+	V0_MAX = 4600 
+	V0_PARTS = 1 
+
+	B_MIN = 0.0
+	B_MAX = 4e-10
+	B_PARTS = 1
+$end
+
+% if grid program is used, then NPOINTS points are selected from each of the 
+% smaller rectangles specified in $gridparameters block.
+% if MCMC program is used, the NPOINTS is the total amount of points used in simulation
+%	NPOINTS = 100
+
+$mcparameters
+	DIM = 3
+	initial_point = 0.1 0.2 0.4
+	alpha = 7.0
+	subchain_length = 10
+
+% upper bound for value of b (gunsight parameter)
+% in Bohrs: 8.0 bohrs \approx 4.0 A
+
+	gunsight_upper_bound = 8.0  
+$end
+
+$files
+	output_directory = results/mcmc_generator/100/ 
+	specfunc_filename = specfunc.txt
+	m2_filename = m2.txt
+	spectrum_filename = spectrum.txt
+$end
+
+
