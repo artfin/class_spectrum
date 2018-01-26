@@ -81,7 +81,6 @@ void syst (REAL t, REAL *y, REAL *f)
 }
 
 // x = [ pR, theta, pT ]
-/*
 double target_distribution( VectorXd x, const double& R, const double& temperature )
 {
 	double pR = x( 0 );
@@ -90,12 +89,6 @@ double target_distribution( VectorXd x, const double& R, const double& temperatu
 
 	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
-}
-*/
-
-double target_distribution( VectorXd x, const double& R, const double& temperature )
-{
-	return 1;
 }
 
 vector<double> create_frequencies_vector( Parameters& parameters )
@@ -349,8 +342,6 @@ void slave_code( int world_rank )
 		}
 		MPI_Recv( &traj_counter, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 
-		double ham_value = p[0]*p[0]/(2.0*MU) + p[2]*p[2]/(2.0*MU*parameters.RDIST*parameters.RDIST);
-
 		y0[0] = parameters.RDIST; 
 		y0[1] = p[0];
 		y0[2] = p[1]; 
@@ -471,12 +462,6 @@ void slave_code( int world_rank )
 			classical.specfunc_package.push_back( specfunc_value_classical );
 
 			spectrum_value_classical = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega *  ( 1.0 - exp( - constants::PLANCKCONST_REDUCED * omega / kT ) ) * dipfft;
-
-			// ##########
-			// !!
-			spectrum_value_classical *= ham_value;
-			// !!
-			// ##########
 
 			classical.spectrum_package.push_back( spectrum_value_classical );
 
