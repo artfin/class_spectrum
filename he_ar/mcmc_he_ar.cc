@@ -91,6 +91,18 @@ double target_distribution( VectorXd x, const double& R, const double& temperatu
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
 }
 
+// x = [ R, pR, theta, pT ]
+double target_phase_space( VectorXd x )
+{
+	double R = x( 0 );
+	double pR = x( 1 );
+	double theta = x( 2 );
+	double pT = x( 3 );	
+	
+	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
+	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
+}
+
 vector<double> create_frequencies_vector( Parameters& parameters )
 {
 	double FREQ_STEP = 1.0 / (parameters.sampling_time * constants::ATU) / constants::LIGHTSPEED_CM / parameters.MaxTrajectoryLength; // cm^-1
@@ -115,20 +127,20 @@ void master_code( int world_size )
 	FileReader fileReader( "parameters.in", &parameters ); 
 	//parameters.show_parameters();
 
-	function<double(VectorXd)> target = bind( target_distribution, _1, parameters.RDIST, parameters.Temperature );
-	
-	Integrand integrand( target, 3 );
-	integrand.set_limits()->add_limit( 0, "-inf", "+inf" )
-						  ->add_limit( 1, 0.0, 2.0 * M_PI )
-						  ->add_limit( 2, "-inf", "+inf" );
+	Integrand integrand( target_phase_space, 4 );
+	integrand.set_limits()->add_limit( 0, 0.0, "+inf")
+						  ->add_limit( 1, "-inf", "+inf" )
+						  ->add_limit( 2, 0.0, 2.0 * M_PI )
+						  ->add_limit( 3, "-inf", "+inf" );
 
 	Integrator integrator( integrand, 0 );
 	integrator.set_callback();
 	
 	int niter = 10, ndots = 50000;	
 	double ham_integral = integrator.run_integration( niter, ndots );
-	ham_integral = ham_integral * constants::HTOJ * constants::HTOJ * constants::ATU / constants::ALU;	
-
+	ham_integral = ham_integral * constants::ALU; 
+	cout << "ham_integral: " << ham_integral << endl;
+	
 	int sent = 0;	
 	int received = 0;
 
@@ -143,6 +155,9 @@ void master_code( int world_size )
 	SpectrumInfo d1( FREQ_SIZE, "d1" );
 	SpectrumInfo d2( FREQ_SIZE, "d2" );
 	SpectrumInfo d3( FREQ_SIZE, "d3" );
+	
+	// function to sample
+	function<double(VectorXd)> target = bind( target_distribution, _1, parameters.RDIST, parameters.Temperature );
 	
 	// wrapping second argument (argument 1):
 	pair<int, double> p1(1, 2*M_PI); 
@@ -288,7 +303,8 @@ void slave_code( int world_rank )
 
 	double specfunc_coeff = 1.0/(4.0*M_PI)/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2);
 
-	double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * 1.0/4.0/M_PI/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2) * pow(constants::LOSHMIDT_CONSTANT, 2);	
+	// double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * 1.0/4.0/M_PI/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2) * pow(constants::LOSHMIDT_CONSTANT, 2);	
+	double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * specfunc_coeff * pow(constants::LOSHMIDT_CONSTANT, 2);
 
 	// j -> erg; m -> cm
 	double SPECFUNC_POWERS_OF_TEN = 1e19;
