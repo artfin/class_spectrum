@@ -15,11 +15,15 @@ MCMC_generator::~MCMC_generator()
 
 	if ( set_histograms )
 	{
+		cout << "Saving histograms..." << endl;
+		
 		for ( size_t i = 0; i < parameters.DIM; i++ )
 		{
 			gsl_histogram_normalize( histograms[i] );
 
 			filename = parameters.output_directory + names[i] + ".txt";
+			cout << "Filename: " << filename << endl;
+
 			save_histogram( histograms[i], filename ); 
 			
 			gsl_histogram_free( histograms[i] );
@@ -102,12 +106,26 @@ void MCMC_generator::burnin( VectorXd initial_point, const int& burnin_length )
 	this->initial_point = initial_point;
 	this->burnin_length = burnin_length;
 
+	int moves = 0;
+	int attempted_steps = 0;
+
 	VectorXd x = metro_step( initial_point );
+	VectorXd xnew;
 
 	for ( size_t i = 0; i < burnin_length; i++ )
 	{
-		x = metro_step( x );
+		xnew = metro_step( x );
+		if ( x == xnew )
+		{
+			x = xnew;
+			moves++;
+		}
+
+		attempted_steps++;
 	}
+
+	cout << "Burnin finished. Chain statistics: " << endl;
+	cout << "Steps made: " << moves << "; steps attempted: " << attempted_steps << "; percentage: " << (double) moves / attempted_steps * 100.0 << "%" << endl; 
 
 	current_point = x;
 	burnin_done = true;
@@ -151,8 +169,6 @@ VectorXd MCMC_generator::generate_free_state_point( void )
 			{
 				if ( set_plimits )
 				{
-					//cout << ">> generated point: ";
-				
 					point_found = true;	
 					for ( size_t i = 0; i < parameters.DIM; i++ )
 					{
@@ -160,12 +176,11 @@ VectorXd MCMC_generator::generate_free_state_point( void )
 						{
 							point_found = false;
 						}
-	
-						//cout << "x(" << i << ") = " << x(i)
-							//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
 					}	
-
-					//cout << endl;	
+				}
+				else
+				{
+					point_found = true;
 				}
 			}
 		}

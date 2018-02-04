@@ -27,13 +27,13 @@ $end
 $mcparameters
 	DIM = 3 % R, pR, pTheta 
 	initial_point = 5.0 0.1 0.4
-	alpha = 7.0 
+	alpha = 0.01
 	subchain_length = 10
-	NPOINTS = 100 
+	NPOINTS = 1000 
 $end
 
 $files
-	output_directory = results/equilibrium_mean/100/
+	output_directory = results/equilibrium_mean/1000/
 	specfunc_filename = specfunc.txt
 	m2_filename = m2.txt
 	spectrum_filename = spectrum.txt

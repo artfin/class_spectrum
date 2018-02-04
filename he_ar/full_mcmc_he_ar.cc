@@ -46,6 +46,8 @@ using Eigen::VectorXd;
 // ############################################
 // Exit tag for killing slave
 const int EXIT_TAG = 42;
+const int TRAJECTORY_CUT_TAG = 43;
+const int TRAJECTORY_FINISHED_TAG = 44;
 // ############################################
 
 // ############################################
@@ -192,6 +194,23 @@ void master_code( int world_size )
 			break;
 		}
 
+		int msg;
+		MPI_Recv( &msg, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
+		if ( status.MPI_TAG == TRAJECTORY_CUT_TAG )
+		{
+			cout << "(0) Received cutting trajectory tag!" << endl;
+			if ( sent < parameters.NPOINTS )
+			{
+				source = status.MPI_SOURCE;
+				p = generator.generate_free_state_point( );
+				MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
+				MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
+				sent++;
+
+				continue;
+			}
+		}
+
 		// ############################################################
 		// Receiving data
 		classical.receive( source, true );
@@ -226,7 +245,7 @@ void master_code( int world_size )
 		if ( sent < parameters.NPOINTS )
 		{
 			p = generator.generate_free_state_point( ); 
-			//generator.show_current_point( );	
+			generator.show_current_point( );	
 
 			MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 			MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
@@ -302,7 +321,7 @@ void slave_code( int world_rank )
 	epsabs = 1E-13;
 	epsrel = 1E-13;
 
-	fmax = 1e8;  		  // maximal number of calls 
+	fmax = 1e9;  		  // maximal number of calls 
 	// #####################################################
 
 	// creating objects to hold spectal info
@@ -310,6 +329,7 @@ void slave_code( int world_rank )
 
 	vector<double> p( parameters.DIM );
 	int traj_counter = 0;
+	bool cut_trajectory = false;
 
 	while ( true )
 	{
@@ -345,12 +365,14 @@ void slave_code( int world_rank )
 
 		clock_t start = clock();
 
+		cut_trajectory = false;
 		// #####################################################
 		while ( y0[0] < R_end_value ) 
 		{
 			if ( counter == parameters.MaxTrajectoryLength )
 			{
 				cout << "Forward trajectory cut!" << endl;
+				cut_trajectory = true;
 				break;
 			}
 
@@ -396,6 +418,7 @@ void slave_code( int world_rank )
 			if ( counter == parameters.MaxTrajectoryLength ) 
 			{
 				cout << "Backward trajectory cut!" << endl;
+				cut_trajectory = true;
 				break;
 			}
 
@@ -420,6 +443,18 @@ void slave_code( int world_rank )
 			counter++;
 		}
 		//cout << "Finished backward trajectory part!" << endl;
+		
+		int msg = 0;
+		if ( cut_trajectory )
+		{
+			cout << "Sending cutting trajectory signal!" << endl;
+			MPI_Send( &msg, 1, MPI_INT, 0, TRAJECTORY_CUT_TAG, MPI_COMM_WORLD );
+			continue;
+		}
+		else
+		{
+			MPI_Send( &msg, 1, MPI_INT, 0, TRAJECTORY_FINISHED_TAG, MPI_COMM_WORLD );
+		}
 
 		vector<double> dipx;
 		vector<double> dipy;
@@ -428,7 +463,11 @@ void slave_code( int world_rank )
 		merge_vectors( dipx, dipx_forward, dipx_backward );
 		merge_vectors( dipy, dipy_forward, dipy_backward );
 		merge_vectors( dipz, dipz_forward, dipz_backward );
-		cout << "Trajectory length: " << dipz.size() << endl;
+		
+		if ( dipz.size() == 0 )
+		{
+			cout << "Starting point: " << p[0] << " " << p[1] << " " << p[2] << endl;
+		}
 
 		// #####################################################
 		// length of dipole vector = number of samples

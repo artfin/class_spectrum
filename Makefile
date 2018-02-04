@@ -85,6 +85,17 @@ $(BUILDDIR)%.oo: %.cc
 include $(wildcard *.d)
 #########################################################################
 
+#########################################################################
+TEST_DIR := ./tests/
+test_src := $(shell find $(TEST_DIR) -name '*.cpp') 
+
+tests: $(patsubst %.cpp, %.x, $(test_src))
+
+$(TEST_DIR)%.x: $(TEST_DIR)%.cpp $(mcmc_he_ar_obj)
+	@$(CCXX) $(CXXFLAGS) -MD $(st_libs) $(ld_libs) $(addprefix -I,$(SOURCE_DIRS)) $^ -o $@
+	@rm -f $(TEST_DIR)*.d
+#########################################################################
+
 targets := $(HE_AR_TARGETS) 
 
 all: $(targets)
@@ -94,5 +105,7 @@ clean:
 	@rm -f $(BUILDDIR)*.o
 	@rm -f $(BUILDDIR)*.oo	
 	@rm -f $(BUILDDIR)*.d
+	@rm -f $(TEST_DIR)*.x
+	@rm -f $(TEST_DIR)*.d
 	@echo "Deleting executrables..."
 	@rm -f $(targets)	
