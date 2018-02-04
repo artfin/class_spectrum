@@ -99,6 +99,9 @@ VectorXd MCMC_generator::metro_step( VectorXd& x )
 
 void MCMC_generator::burnin( VectorXd initial_point, const int& burnin_length )
 {
+	this->initial_point = initial_point;
+	this->burnin_length = burnin_length;
+
 	VectorXd x = metro_step( initial_point );
 
 	for ( size_t i = 0; i < burnin_length; i++ )
@@ -118,6 +121,76 @@ void MCMC_generator::show_current_point( void )
 	cout << endl;
 }
 
+VectorXd MCMC_generator::generate_free_state_point( void )
+{
+	if ( burnin_done == false )
+	{
+		std::cout << "Burnin is not done!" << std::endl;
+		exit( 1 );
+	}
+
+	int moves = 0;
+	VectorXd x = current_point;
+	VectorXd xnew;
+
+	bool point_found = false;
+
+	while( !point_found )
+	{
+		xnew = metro_step( x );
+
+		if ( xnew != x )
+		{
+			x = xnew;
+			moves++;
+		}
+		
+		if ( moves > parameters.subchain_length )
+		{
+			if ( f(x) > 0 )
+			{
+				if ( set_plimits )
+				{
+					//cout << ">> generated point: ";
+				
+					point_found = true;	
+					for ( size_t i = 0; i < parameters.DIM; i++ )
+					{
+						if ( x(i) > plimits.limits[i].ub || x(i) < plimits.limits[i].lb )
+						{
+							point_found = false;
+						}
+	
+						//cout << "x(" << i << ") = " << x(i)
+							//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
+					}	
+
+					//cout << endl;	
+				}
+			}
+		}
+
+		if ( moves > 50 * parameters.subchain_length )
+		{
+			//cout << "moves made: " << moves << endl;
+			//cout << "restarting chain from initial point!" << endl;
+			
+			burnin( initial_point, burnin_length );
+		   	x = current_point;
+			moves = 0;	
+		}
+	}
+	
+	if ( set_histograms )
+	{
+		for ( size_t i = 0; i < parameters.DIM; i++ )
+			gsl_histogram_increment( histograms[i], x(i) );
+	}	
+
+	current_point = x;
+	return x;
+}
+
 VectorXd MCMC_generator::generate_point( ) 
 {
 	if ( burnin_done == false )
@@ -130,7 +203,6 @@ VectorXd MCMC_generator::generate_point( )
 	VectorXd x = current_point;
 	VectorXd xnew;
 
-	double gunsight;
 	bool point_found = false;
 
 	while ( !point_found )
@@ -162,7 +234,7 @@ VectorXd MCMC_generator::generate_point( )
 			if ( set_plimits )
 			{
 				//cout << ">> generated point: ";
-			
+				
 				point_found = true;	
 				for ( size_t i = 0; i < parameters.DIM; i++ )
 				{

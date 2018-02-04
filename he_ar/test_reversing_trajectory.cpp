@@ -5,6 +5,7 @@
 #include <random>
 #include <ctime>
 #include <functional>
+#include <algorithm>
 
 #include <Eigen/Dense>
 
@@ -518,6 +519,7 @@ void slave_code( int world_rank )
 
 int main( int argc, char* argv[] )
 {
+/*
 	//Initialize the MPI environment
 	MPI_Init( &argc, &argv );
 
@@ -543,6 +545,143 @@ int main( int argc, char* argv[] )
 	}
 
 	MPI_Finalize();
+*/
+	
+	Parameters parameters;
+	FileReader fileReader( "parameters.in", &parameters ); 
+
+	//// #####################################################
+	REAL epsabs;    //  absolute error bound
+	REAL epsrel;    //  relative error bound    
+	REAL t0;        // left edge of integration interval
+	REAL *y0;       // [0..n-1]-vector: initial value, approxim. 
+	REAL h;         // initial, final step size
+	REAL xend;      // right edge of integration interval 
+
+	long fmax;      // maximal number of calls of right side in gear4()
+	long aufrufe;   // actual number of function calls
+	int  N;         // number of DEs in system
+	int  fehler;    // error code from umleiten(), gear4()
+
+	void *vmblock;  // List of dynamically allocated vectors
+
+
+	N = 4;
+	vmblock = vminit();
+	y0 = (REAL*) vmalloc(vmblock, VEKTOR, N, 0);
+
+	// accuracy of trajectory
+	epsabs = 1E-13;
+	epsrel = 1E-13;
+
+	fmax = 1e8;  		  // maximal number of calls 
+	// #####################################################
+
+	y0[0] = 9.8831; 
+	y0[1] = -15.0051;
+	y0[2] = 0.00498131;
+	y0[3] = -1.000;
+
+	int counter = 0;
+	double R_end_value = 40.0; 
+
+	t0 = 0.0;
+
+	h = 0.1;  // initial step size
+	xend = parameters.sampling_time; // initial right bound of integration
+
+	clock_t start = clock();
+
+	vector<double> R_values;
+	vector<double> pR_values;
+	vector<double> theta_values;
+	vector<double> ptheta_values;
+
+	while ( y0[0] < R_end_value ) 
+	{
+		if ( counter == parameters.MaxTrajectoryLength )
+		{
+			//cout << "Trajectory cut!" << endl;
+			break;
+		}
+
+		fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
+
+		// cout << y0[0] << " " << y0[1] << " " << y0[2] << " " << y0[3] << endl;
+		R_values.push_back( y0[0] );
+		pR_values.push_back( y0[1] );
+		theta_values.push_back( y0[2] );
+		ptheta_values.push_back( y0[3] );
+
+		if ( fehler != 0 ) 
+		{
+			cout << "Gear4: error n = " << 10 + fehler << endl;
+			break;
+		}
+		
+		xend = parameters.sampling_time * (counter + 2);
+
+		aufrufe = 0;  // actual number of calls
+
+		counter++;
+	}
+
+	y0[0] = 9.8831; 
+	y0[1] = 15.0051;
+	y0[2] = 0.00498131;
+	y0[3] = 1.000;
+
+	vector<double> R_values_back;
+	vector<double> pR_values_back;
+	vector<double> theta_values_back;
+	vector<double> ptheta_values_back;
+
+	while ( y0[0] < R_end_value ) 
+	{
+		if ( counter == parameters.MaxTrajectoryLength )
+		{
+			//cout << "Trajectory cut!" << endl;
+			break;
+		}
+
+		fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
+
+		// cout << y0[0] << " " << y0[1] << " " << y0[2] << " " << y0[3] << endl;
+		R_values_back.push_back( y0[0] );
+		pR_values_back.push_back( y0[1] );
+		theta_values_back.push_back( y0[2] );
+		ptheta_values_back.push_back( y0[3] );
+
+		if ( fehler != 0 ) 
+		{
+			cout << "Gear4: error n = " << 10 + fehler << endl;
+			break;
+		}
+		
+		xend = parameters.sampling_time * (counter + 2);
+
+		aufrufe = 0;  // actual number of calls
+
+		counter++;
+	}
+
+	reverse( R_values.begin(), R_values.end() );
+	reverse( theta_values.begin(), theta_values.end() );
+	reverse( pR_values.begin(), pR_values.end() );
+	reverse( ptheta_values.begin(), ptheta_values.end() );
+
+	ofstream file( "trajectory_two_side.txt" );
+	for ( size_t k = 0; k < R_values.size(); k++ )
+	{
+		file << R_values[k] << " " << -pR_values[k] << " " << theta_values[k] << " " << -ptheta_values[k] << endl;
+	}
+
+	for ( size_t k = 0; k < pR_values_back.size(); k++ )
+	{
+		file << R_values_back[k] << " " << pR_values_back[k] << " " << theta_values_back[k] << " " << ptheta_values_back[k] << endl;
+	}
+
+	file.close();
 
 	return 0;
 }

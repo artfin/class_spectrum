@@ -41,7 +41,7 @@ gear_diatom_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(gear_diatom
 #
 # mcmc_he_ar_src := $(foreach filename,$(mcmc_he_ar_src),$(shell find -type f -name $(filename)))
 
-HE_AR_TARGETS := mcmc_he_ar grid_he_ar
+HE_AR_TARGETS := mcmc_he_ar grid_he_ar full_mcmc_he_ar
 
 mcmc_he_ar_src := matrix_he_ar.cpp mcmc_generator.cpp parameters.cpp file.cpp ar_he_dip_buryak_fit.cpp ar_he_pes.cpp ar_he_pes_derivative.cpp leg_arr.cpp fft.cpp 
 mcmc_he_ar_srcx := spectrum_info.cc mcmc_he_ar.cc 
@@ -58,6 +58,15 @@ grid_he_ar_objx := $(addprefix $(BUILDDIR), $(patsubst %.cc, %.oo, $(grid_he_ar_
 grid_he_ar: $(grid_he_ar_obj) $(grid_he_ar_objx) $(gear_diatom_obj)
 	@echo "(GRID_HE_AR) object files: " $(grid_he_ar_obj) $(grid_he_ar_objx)
 	@$(MPICCXX) $(CXXFLAGS) $(ld_libs) $^ -o $@
+
+full_mcmc_he_ar_src := ar_he_pes_derivative.cpp ar_he_dip_buryak_fit.cpp matrix_he_ar.cpp fft.cpp parameters.cpp mcmc_generator.cpp file.cpp ar_he_pes.cpp
+full_mcmc_he_ar_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(full_mcmc_he_ar_src)))
+full_mcmc_he_ar_srcx := spectrum_info.cc full_mcmc_he_ar.cc
+full_mcmc_he_ar_objx := $(addprefix $(BUILDDIR), $(patsubst %.cc, %.oo, $(full_mcmc_he_ar_srcx)))
+full_mcmc_he_ar: $(gear_diatom_obj) $(full_mcmc_he_ar_obj) $(full_mcmc_he_ar_objx) 
+	@echo " (FULL_MCMC_HE_AR) object files: " $^
+	@$(MPICCXX) $(CXXFLAGS) $(st_libs) $(ld_libs) $^ -o $@
+
 #########################################################################
 
 #########################################################################
@@ -82,7 +91,8 @@ all: $(targets)
 
 clean:
 	@echo "Cleaning $(BUILDDIR) directory..."
-	@rm -f $(BUILDDIR)*.o 
+	@rm -f $(BUILDDIR)*.o
+	@rm -f $(BUILDDIR)*.oo	
 	@rm -f $(BUILDDIR)*.d
 	@echo "Deleting executrables..."
 	@rm -f $(targets)	

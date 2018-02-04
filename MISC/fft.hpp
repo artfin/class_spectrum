@@ -27,6 +27,7 @@ class Fourier
 		fftw_plan py;
 		fftw_plan pz;
 
+		void copy_into_fourier_array( std::vector<double>& v, std::string type );		
 		void zero_out_input( void );
 		void do_fourier( void );
 		
@@ -34,9 +35,11 @@ class Fourier
 		~Fourier();
 };
 
-std::vector<double> linspace( const double min, const double max, const int npoints );
+// copy from vector to fftw_complex*
 void copy_to( std::vector<double> &v, fftw_complex* arr );
 void copy_to( std::vector<double> &v, double* arr );
+
+std::vector<double> linspace( const double min, const double max, const int npoints );
 
 std::vector<double> fft_one_side( std::vector<double> signal );
 std::vector<double> fft_two_side( std::vector<double> &signal );

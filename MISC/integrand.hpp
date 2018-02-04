@@ -48,10 +48,15 @@ public:
 				jac *= ( limits.limits[i].ub - limits.limits[i].lb );
 			}
 
-			if ( limits.limits[i].chvarType == Limit::chvarTypes::ZEROINF )
+			if ( limits.limits[i].chvarType == Limit::chvarTypes::FINITEINF )
 			{
-				xtr(i) = tan( M_PI / 2 * x.point()[i] );
-				jac *= M_PI / 2.0 * ( 1 + xtr(i) * xtr(i) );
+				xtr(i) = limits.limits[i].lb * tan( M_PI / 2 * x.point()[i] );
+			
+				//cout << "lb: " << limits.limits[i].lb << "; x(i): " << x.point()[i] << "; xtr(i): " << xtr(i) << endl;	
+				if ( xtr(i) < limits.limits[i].lb )
+					return 0;
+
+				jac *= M_PI / 2.0 * limits.limits[i].lb * ( limits.limits[i].lb * limits.limits[i].lb + xtr(i) * xtr(i) );
 			}
 		}
 

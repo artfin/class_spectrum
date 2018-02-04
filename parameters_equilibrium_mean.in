@@ -20,30 +20,20 @@ $end
 % v0: 200 - 4600 m/s
 % b: 0.0 - 4.0 A
 
-$gridparameters
-	V0_MIN = 200.0
-	V0_MAX = 4600 
-	V0_PARTS = 1 
-
-	B_MIN = 0.0
-	B_MAX = 4e-10
-	B_PARTS = 1
-$end
-
 % if grid program is used, then NPOINTS points are selected from each of the 
 % smaller rectangles specified in $gridparameters block.
 % if MCMC program is used, the NPOINTS is the total amount of points used in simulation
 
 $mcparameters
-	DIM = 2
-	initial_point = 0.1 0.4
+	DIM = 3 % R, pR, pTheta 
+	initial_point = 5.0 0.1 0.4
 	alpha = 7.0 
 	subchain_length = 10
-	NPOINTS = 300 
+	NPOINTS = 100 
 $end
 
 $files
-	output_directory = results/mcmc_generator/1000/
+	output_directory = results/equilibrium_mean/100/
 	specfunc_filename = specfunc.txt
 	m2_filename = m2.txt
 	spectrum_filename = spectrum.txt

@@ -5,6 +5,7 @@
 #include <random>
 #include <ctime>
 #include <functional>
+#include <algorithm>
 
 #include <Eigen/Dense>
 
@@ -80,11 +81,12 @@ void syst (REAL t, REAL *y, REAL *f)
 	delete [] out;
 }
 
-// x = [ pR, pT ]
-double numerator_integrand_( VectorXd x, const double& R, const double& temperature )
+// x = [ R, pR, pT ]
+double numerator_integrand_( VectorXd x, const double& temperature )
 {
-	double pR = x( 0 );
-	double pT = x( 1 );
+	double R = x( 0 );
+	double pR = x( 1 );
+	double pT = x( 2 );
 
 	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
@@ -128,38 +130,8 @@ void master_code( int world_size )
 	int source;
 
 	Parameters parameters;
-	FileReader fileReader( "parameters.in", &parameters ); 
+	FileReader fileReader( "parameters_equilibrium_mean.in", &parameters ); 
 	//parameters.show_parameters();
-	
-	function<double(VectorXd)> numerator_integrand = bind( numerator_integrand_, _1, parameters.RDIST, parameters.Temperature );
-	
-  	// ###################################################################################################3
-	/*
-	const int niter = 10; // number of iterations to perform
-	const int ndots = 50000; // number of dots to use on each iteration
-	
-	// function to sample
-	Integrand num_integrand( numerator_integrand, 2 );
-	num_integrand.set_limits()->add_limit( 0, "-inf", "+inf" )
-							  ->add_limit( 1, "-inf", "+inf" );
-
-	Integrator numerator_integrator( num_integrand );
-	double numerator_value = numerator_integrator.run_integration( niter, ndots );
-	cout << "numerator: " << numerator_value << endl;
-
-	function<double(VectorXd)> denumerator_integrand = bind( denumerator_integrand_, _1, parameters.Temperature );  
-	Integrand denum_integrand( denumerator_integrand, 3 );
-	denum_integrand.set_limits()->add_limit( 0, 4.0, "+inf")
-						  		->add_limit( 1, "-inf", "+inf" )
-						  		->add_limit( 2, "-inf", "+inf" );
-
-	Integrator denumerator_integrator( denum_integrand );
-	double denumerator_value = denumerator_integrator.run_integration( niter, ndots );
-	cout << "denumerator: " << denumerator_value << endl;
-  	*/
-	// ###################################################################################################3
-
-	// double integral_ratio = numerator_value; // / denumerator_value / constants::ATU;
 
 	int sent = 0;	
 	int received = 0;
@@ -172,38 +144,34 @@ void master_code( int world_size )
 
 	// creating objects to hold spectrum info
 	SpectrumInfo classical( FREQ_SIZE, "classical" );
-	SpectrumInfo d1( FREQ_SIZE, "d1" );
-	SpectrumInfo d2( FREQ_SIZE, "d2" );
-	SpectrumInfo d3( FREQ_SIZE, "d3" );
-	
+
+	function<double(VectorXd)> numerator_integrand = bind( numerator_integrand_, _1, parameters.Temperature );
+
 	// creating MCMC_generator object
 	MCMC_generator generator( numerator_integrand, parameters );
 	
-	// adding limits for coordinates of generated point
-	// pR = mu * vo => using v0_max \approx 5000 m/s => pR = 15, set pR(max) = 20.0
-	// b = pTheta/pR; b(max) = 12.0; set pT(max) = 250.0 
-	generator.set_point_limits()->add_limit(0, -20.0, 0.0)
-								->add_limit(1, -250.0, 250.0);
-
 	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
-	generator.burnin( initial_point, 10 );	
+	generator.burnin( initial_point, 10000 );	
+	
+	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
+								->add_limit(1, -50.0, 50.0)
+								->add_limit(2, -250.0, 250.0);
 	
 	// allocating histograms to store variables
-	generator.set_histogram_limits()->add_limit(0, -20.0, 20.0)
-								    ->add_limit(1, -250.0, 250.0); 
-	vector<string> names { "pR", "pT" };
+	generator.set_histogram_limits()->add_limit(0, 0.0, parameters.RDIST)
+									->add_limit(1, -50.0, 50.0)
+								    ->add_limit(2, -250.0, 250.0); 
+	vector<string> names { "R", "pR", "pT" };
 	generator.allocate_histograms( names );	
-
-	// setting indeces of pR, Jx to calculate gunsight parameter
-	generator.pR_index = 0;
-	generator.Jx_index = 2;
 
 	VectorXd p;
 	// sending first trajectory	
 	for ( int i = 1; i < world_size; i++ )
 	{
-		p = generator.generate_point( );
+		p = generator.generate_free_state_point( );
+		//generator.show_current_point();
+
 		MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD );
 		MPI_Send( &sent, 1, MPI_INT, i, 0, MPI_COMM_WORLD );
 
@@ -234,7 +202,7 @@ void master_code( int world_size )
 
 		string name = "temp";
 		stringstream ss;
-		if ( received % 100 == 0 )
+		if ( received % 500 == 0 )
 		{
 			double multiplier = 1.0 / parameters.NPOINTS;
 			classical.multiply_total( multiplier );
@@ -257,7 +225,7 @@ void master_code( int world_size )
 
 		if ( sent < parameters.NPOINTS )
 		{
-			p = generator.generate_point( ); 
+			p = generator.generate_free_state_point( ); 
 			//generator.show_current_point( );	
 
 			MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
@@ -268,54 +236,28 @@ void master_code( int world_size )
 	}
 }
 
-//double d1_corrector( double omega, double kT )
-//{
-	//return 2.0 / (1.0 + exp(-constants::PLANCKCONST_REDUCED * omega / kT));
-//}	
+void merge_vectors( vector<double>& merged, vector<double>& forward, vector<double>& backward )
+{
+	reverse( forward.begin(), forward.end() );
+	for ( size_t k = 0; k < forward.size(); k++ )
+	{
+		merged.push_back( forward[k] );
+	}
 
-//double d2_corrector( double omega, double kT )
-//{
-	//return constants::PLANCKCONST_REDUCED * omega / kT / (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT));
-//}
-
-//double d3_corrector( double omega, double kT )
-//{
-	//return exp( constants::PLANCKCONST_REDUCED * omega / kT / 2.0 );
-//}
+	for ( size_t k = 0; k < backward.size(); k++ )
+	{
+		merged.push_back( backward[k] );
+	}
+}
 
 void slave_code( int world_rank )
 {
 	// it would be easier for slave to read parameters file by himself, 
 	// rather than sending him parameters object (or just several parameters)
 	Parameters parameters;
-	FileReader fileReader( "parameters.in", &parameters ); 
+	FileReader fileReader( "parameters_equilibrium_mean.in", &parameters ); 
 
 	MPI_Status status;
-	
-	// #####################################################
-	/*
-	const int niter = 10; // number of iterations to perform
-	const int ndots = 50000; // number of dots to use on each iteration
-	
-	// function to sample
-	function<double(VectorXd)> numerator_integrand = bind( numerator_integrand_, _1, parameters.RDIST, parameters.Temperature );
-	Integrand num_integrand( numerator_integrand, 2 );
-	num_integrand.set_limits()->add_limit( 0, "-inf", "+inf" )
-							  ->add_limit( 1, "-inf", "+inf" );
-
-	Integrator numerator_integrator( num_integrand );
-	double numerator = numerator_integrator.run_integration( niter, ndots );
-
-	function<double(VectorXd)> denumerator_integrand = bind( denumerator_integrand_, _1, parameters.Temperature );  
-	Integrand denum_integrand( denumerator_integrand, 3 );
-	denum_integrand.set_limits()->add_limit( 0, 0.0, "+inf")
-						  		->add_limit( 1, "-inf", "+inf" )
-						  		->add_limit( 2, "-inf", "+inf" );
-
-	Integrator denumerator_integrator( denum_integrand );
-	double denumerator = denumerator_integrator.run_integration( niter, ndots );
-	*/
-	// #####################################################
 
 	// #####################################################
 	// initializing special fourier class
@@ -327,7 +269,6 @@ void slave_code( int world_rank )
 
 	double specfunc_coeff = 1.0/(4.0*M_PI)/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2);
 
-	// double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * 1.0/4.0/M_PI/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2) * pow(constants::LOSHMIDT_CONSTANT, 2);	
 	double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * specfunc_coeff * pow(constants::LOSHMIDT_CONSTANT, 2);
 
 	// j -> erg; m -> cm
@@ -352,7 +293,6 @@ void slave_code( int world_rank )
 	int  fehler;    // error code from umleiten(), gear4()
 
 	void *vmblock;  // List of dynamically allocated vectors
-
 
 	N = 4;
 	vmblock = vminit();
@@ -382,28 +322,19 @@ void slave_code( int world_rank )
 		}
 		MPI_Recv( &traj_counter, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 
-		y0[0] = parameters.RDIST; 
-		y0[1] = p[0];
-		y0[2] = p[1]; 
+		y0[0] = p[0]; 
+		y0[1] = p[1];
+		y0[2] = 0.0; 
 		y0[3] = p[2]; 
 
-		double pR_weight = abs( p[0] / MU ) * pow( parameters.RDIST * constants::ALU, 2 ) / constants::ATU;
-
-		// out of memory?
-		//if ( !vmcomplete(vmblock) )
-		//{ 
-		//cout << "mgear: out of memory" << endl;
-		//return;
-		//}
-
 		int counter = 0;
-		double R_end_value = y0[0] + 0.001;
+		double R_end_value = parameters.RDIST; 
 
 		// dipole moment in laboratory frame
 		vector<double> temp( 3 );
-		vector<double> dipx;
-		vector<double> dipy;
-		vector<double> dipz;
+		vector<double> dipx_forward;
+		vector<double> dipy_forward;
+		vector<double> dipz_forward;
 
 		// #####################################################
 		t0 = 0.0;
@@ -419,16 +350,11 @@ void slave_code( int world_rank )
 		{
 			if ( counter == parameters.MaxTrajectoryLength )
 			{
-				//cout << "Trajectory cut!" << endl;
+				cout << "Forward trajectory cut!" << endl;
 				break;
 			}
 
 			fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
-
-			//cout << "%%%" << endl;
-			//cout << "t0: " << t0 << endl;
-			//cout << "xend: " << xend << endl;
-			//cout << "%%%" << endl;
 
 			if ( fehler != 0 ) 
 			{
@@ -438,14 +364,9 @@ void slave_code( int world_rank )
 
 			transform_dipole( temp, y0[0], y0[2] );
 
-			//cout << "t: " << t0 * constants::ATU <<
-				//"; R (alu): " << y0[0] << 	
-				//"; R: " << y0[0] * constants::ALU << 
-				//"; dipole z: " << temp[2] * constants::ADIPMOMU << endl;
-
-			dipx.push_back( temp[0] );
-			dipy.push_back( temp[1] );
-			dipz.push_back( temp[2] );
+			dipx_forward.push_back( temp[0] );
+			dipy_forward.push_back( temp[1] );
+			dipz_forward.push_back( temp[2] );
 
 			xend = parameters.sampling_time * (counter + 2);
 
@@ -453,7 +374,61 @@ void slave_code( int world_rank )
 
 			counter++;
 		}
+
+		//cout << "Finished forward trajectory part!" << endl;
 		// #####################################################
+		t0 = 0.0;
+
+		h = 0.1;  // initial step size
+		xend = parameters.sampling_time; // initial right bound of integration
+		
+		y0[0] = p[0]; 
+		y0[1] = - p[1];
+		y0[2] = 0.0; 
+		y0[3] = - p[2]; 
+		
+		vector<double> dipx_backward;
+		vector<double> dipy_backward;
+		vector<double> dipz_backward;
+		
+		while ( y0[0] < R_end_value ) 
+		{
+			if ( counter == parameters.MaxTrajectoryLength ) 
+			{
+				cout << "Backward trajectory cut!" << endl;
+				break;
+			}
+
+			fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
+
+			if ( fehler != 0 ) 
+			{
+				cout << "Gear4: error n = " << 10 + fehler << endl;
+				break;
+			}
+
+			transform_dipole( temp, y0[0], y0[2] );
+
+			dipx_backward.push_back( temp[0] );
+			dipy_backward.push_back( temp[1] );
+			dipz_backward.push_back( temp[2] );
+
+			xend = parameters.sampling_time * (counter + 2);
+
+			aufrufe = 0;  // actual number of calls
+
+			counter++;
+		}
+		//cout << "Finished backward trajectory part!" << endl;
+
+		vector<double> dipx;
+		vector<double> dipy;
+		vector<double> dipz;
+		
+		merge_vectors( dipx, dipx_forward, dipx_backward );
+		merge_vectors( dipy, dipy_forward, dipy_backward );
+		merge_vectors( dipz, dipz_forward, dipz_backward );
+		cout << "Trajectory length: " << dipz.size() << endl;
 
 		// #####################################################
 		// length of dipole vector = number of samples
@@ -462,10 +437,9 @@ void slave_code( int world_rank )
 		// zeroing input arrays
 		fourier.zero_out_input( );
 
-		// copying data to them
-		copy_to( dipx, fourier.inx );
-		copy_to( dipy, fourier.iny );
-		copy_to( dipz, fourier.inz );
+		fourier.copy_into_fourier_array( dipx, "x" );
+		fourier.copy_into_fourier_array( dipy, "y" );
+		fourier.copy_into_fourier_array( dipz, "z" );
 
 		// executing fourier transform
 		fourier.do_fourier( );
@@ -498,8 +472,6 @@ void slave_code( int world_rank )
 			classical.specfunc_package.push_back( specfunc_value_classical );
 
 			spectrum_value_classical = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega *  ( 1.0 - exp( - constants::PLANCKCONST_REDUCED * omega / kT ) ) * dipfft;
-
-			spectrum_value_classical *= pR_weight;
 			
 			classical.spectrum_package.push_back( spectrum_value_classical );
 

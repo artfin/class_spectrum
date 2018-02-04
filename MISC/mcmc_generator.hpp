@@ -57,7 +57,9 @@ public:
 	bool burnin_done = false;
 
 	VectorXd current_point{ parameters.DIM };
-
+	VectorXd initial_point{ parameters.DIM };
+	int burnin_length;
+		
 	function<double(VectorXd)> f;
 
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -77,6 +79,7 @@ public:
 	int Jx_index;
 
 	VectorXd generate_point( ); 
+	VectorXd generate_free_state_point( void );
 
 	MCMC_generator( 
 		function<double(VectorXd)> f,

@@ -26,10 +26,10 @@ void multiply_vector( std::vector<double> &v, const double factor )
 // copy from vector to fftw_complex*
 void copy_to( std::vector<double> &v, fftw_complex* arr )
 {
-	for ( int i = 0; i < v.size(); i++ )
+	for ( size_t k = 0; k < v.size(); k++ )
 	{
-		arr[i][0] = v[i];
-		arr[i][1] = 0;
+		arr[k][0] = v[k];
+		arr[k][1] = 0;
 	}
 }
 
@@ -43,31 +43,50 @@ void copy_to( std::vector<double> &v, double* arr )
 
 void Fourier::zero_out_input( void )
 {
-	for ( int i = 0; i < this->MaxTrajectoryLength; i++ )
+	for ( size_t i = 0; i < MaxTrajectoryLength; i++ )
 	{
-		this->inx[i] = 0.0;
-		this->iny[i] = 0.0;
-		this->inz[i] = 0.0;
+		inx[i] = 0.0;
+		iny[i] = 0.0;
+		inz[i] = 0.0;
 	}
 }
 
-Fourier::Fourier( int MaxTrajectoryLength )
+void Fourier::copy_into_fourier_array( std::vector<double>& v, std::string type )
 {
-	this->MaxTrajectoryLength = MaxTrajectoryLength;
-	
+	if ( type == "x" )
+	{
+		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+			inx[k] = v[k];
+	}
+
+	if ( type == "y" )
+	{
+		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+			iny[k] = v[k];
+	}
+
+	if ( type == "z" )
+	{
+		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+			inz[k] = v[k];
+	}
+}
+
+Fourier::Fourier( int MaxTrajectoryLength ) : MaxTrajectoryLength(MaxTrajectoryLength)
+{
 	int outlen = MaxTrajectoryLength / 2 + 1;
 
-	this->inx = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
-	this->iny = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
-	this->inz = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
+	inx = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
+	iny = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
+	inz = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
 
-	this->outx = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen ); 
-	this->outy = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen );
-	this->outz = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen ); 
+	outx = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen ); 
+	outy = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen );
+	outz = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen ); 
 
-	this->px = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, this->inx, this->outx, FFTW_ESTIMATE );
-	this->py = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, this->iny, this->outy, FFTW_ESTIMATE );
-	this->pz = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, this->inz, this->outz, FFTW_ESTIMATE );
+	px = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, inx, outx, FFTW_ESTIMATE );
+	py = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, iny, outy, FFTW_ESTIMATE );
+	pz = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, inz, outz, FFTW_ESTIMATE );
 
 	zero_out_input( );	
 }

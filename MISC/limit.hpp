@@ -13,7 +13,7 @@ struct Limit
 	std::string lb_str; 
 	
 	// change of variables 
-	enum chvarTypes { INFINF, ZEROINF, FINITE } chvarType;
+	enum chvarTypes { INFINF, FINITEINF, FINITE } chvarType;
 	enum limitTypes { DOUBLE, STRING } ubType, lbType;
 	
 	int var_number;
@@ -53,8 +53,8 @@ struct Limit
 		lbType = limitTypes::DOUBLE;
 		ubType = limitTypes::STRING;
 
-		if ( lb == 0.0 && ub_str == "+inf" ) chvarType = chvarTypes::ZEROINF;
-		else throw std::invalid_argument( "Unknown bounds!" );
+		chvarType = chvarTypes::FINITEINF;
+		cout << "(lb_str): " << lb << "; (ub_str): " << ub_str << endl;
 	}
 
 	Limit( int var_number, std::string lb_str, std::string ub_str ) :
