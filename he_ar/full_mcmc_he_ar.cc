@@ -94,23 +94,6 @@ double numerator_integrand_( VectorXd x, const double& temperature )
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
 }
 
-// x = [ R, pR, pT ]
-double denumerator_integrand_( VectorXd x, const double& temperature )
-{
-	double R = x( 0 );
-	double pR = x( 1 );
-	double pT = x( 2 );	
-	
-	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R) + ar_he_pot( R );
-	
-	if ( h < 0 )
-	{
-		// cout << "R: " << R << "; h: " << h << endl;
-	}
-	//cout << "R: " << R << "; U: " << ar_he_pot( R ) << endl;
-	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
-}
-
 vector<double> create_frequencies_vector( Parameters& parameters )
 {
 	double FREQ_STEP = 1.0 / (parameters.sampling_time * constants::ATU) / constants::LIGHTSPEED_CM / parameters.MaxTrajectoryLength; // cm^-1
@@ -155,11 +138,11 @@ void master_code( int world_size )
 	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
 	generator.burnin( initial_point, 10000 );	
-	
+
 	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
 								->add_limit(1, -50.0, 50.0)
 								->add_limit(2, -250.0, 250.0);
-	
+
 	// allocating histograms to store variables
 	generator.set_histogram_limits()->add_limit(0, 0.0, parameters.RDIST)
 									->add_limit(1, -50.0, 50.0)

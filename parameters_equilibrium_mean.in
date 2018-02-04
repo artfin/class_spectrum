@@ -27,7 +27,7 @@ $end
 $mcparameters
 	DIM = 3 % R, pR, pTheta 
 	initial_point = 5.0 0.1 0.4
-	alpha = 0.01
+	alpha = 1.5 
 	subchain_length = 10
 	NPOINTS = 1000 
 $end

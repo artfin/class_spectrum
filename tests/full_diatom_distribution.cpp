@@ -12,7 +12,7 @@ using namespace std;
 using namespace Eigen;
 using namespace std::placeholders;
 
-const double MU = 0.5;
+const double MU = 6632.04; 
 
 // x = [ R, pR, pT ]
 double numerator_integrand_( VectorXd x, const double& temperature )
