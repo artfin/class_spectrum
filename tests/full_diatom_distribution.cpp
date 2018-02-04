@@ -40,12 +40,14 @@ int main()
 	generator.burnin( initial_point, 10000 );	
 	
 	// allocating histograms to store variables
+	/*
 	generator.set_histogram_limits()->add_limit(0, 0.0, 2 * parameters.RDIST) 
 									->add_limit(1, -50.0, 50.0)
 								    ->add_limit(2, -250.0, 250.0); 
 	vector<string> names { "R", "pR", "pT" };
 	generator.allocate_histograms( names );	
-
+	*/
+	
 	const int chain_length = 10000000;
 
 	VectorXd p;

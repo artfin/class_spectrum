@@ -139,6 +139,7 @@ void master_code( int world_size )
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
 	generator.burnin( initial_point, 10000 );	
 
+	/*
 	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
 								->add_limit(1, -50.0, 50.0)
 								->add_limit(2, -250.0, 250.0);
@@ -149,7 +150,8 @@ void master_code( int world_size )
 								    ->add_limit(2, -250.0, 250.0); 
 	vector<string> names { "R", "pR", "pT" };
 	generator.allocate_histograms( names );	
-
+	*/
+	
 	VectorXd p;
 	// sending first trajectory	
 	for ( int i = 1; i < world_size; i++ )
