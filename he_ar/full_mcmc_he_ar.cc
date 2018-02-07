@@ -29,8 +29,12 @@
 #include "integrator.hpp"
 // miscellaneous functions
 #include "fft.hpp"
+// tags for mpi messages
+#include "tags.hpp"
 // physical constants
 #include "constants.hpp"
+// Trajectory class
+#include "trajectory.hpp"
 // library for FFT
 #include <fftw3.h>
 
@@ -44,22 +48,10 @@ using namespace std::placeholders;
 using Eigen::VectorXd;
 
 // ############################################
-// Exit tag for killing slave
-const int EXIT_TAG = 42;
-const int TRAJECTORY_CUT_TAG = 43;
-const int TRAJECTORY_FINISHED_TAG = 44;
-// ############################################
-
-// ############################################
-const double DALTON_UNIT = 1.660539040 * 1e-27;
-
 const double HE_MASS = 4.00260325413;
 const double AR_MASS = 39.9623831237; 
-const double MU_SI = HE_MASS * AR_MASS / ( HE_MASS + AR_MASS ) * DALTON_UNIT; 
+const double MU_SI = HE_MASS * AR_MASS / ( HE_MASS + AR_MASS ) * constants::DALTON_UNIT; 
 const double MU = MU_SI / constants::AMU;
-
-static const double MYPI = 3.141592653589793; 
-const double TWO_PI = 2 * MYPI; 
 // ############################################
 
 void syst (REAL t, REAL *y, REAL *f)
@@ -157,10 +149,13 @@ void master_code( int world_size )
 	for ( int i = 1; i < world_size; i++ )
 	{
 		p = generator.generate_free_state_point( );
-		//generator.show_current_point();
+		generator.show_current_point();
 
 		MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD );
+		cout << "(master) sent point " << endl;
+
 		MPI_Send( &sent, 1, MPI_INT, i, 0, MPI_COMM_WORLD );
+		cout << "(master) sent number of trajectory" << endl;
 
 		sent++;
 	}
@@ -173,7 +168,7 @@ void master_code( int world_size )
 		{
 			for ( int i = 1; i < world_size; i++ )
 			{	
-				MPI_Send( &is_finished, 1, MPI_INT, i, EXIT_TAG, MPI_COMM_WORLD );
+				MPI_Send( &is_finished, 1, MPI_INT, i, tags::EXIT_TAG, MPI_COMM_WORLD );
 			}
 
 			break;
@@ -181,7 +176,7 @@ void master_code( int world_size )
 
 		int msg;
 		MPI_Recv( &msg, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
-		if ( status.MPI_TAG == TRAJECTORY_CUT_TAG )
+		if ( status.MPI_TAG == tags::TRAJECTORY_CUT_TAG )
 		{
 			cout << "(0) Received cutting trajectory tag!" << endl;
 			if ( sent < parameters.NPOINTS )
@@ -195,11 +190,15 @@ void master_code( int world_size )
 				continue;
 			}
 		}
+		if ( status.MPI_TAG == tags::TRAJECTORY_FINISHED_TAG )
+			cout << "(master) Trajectory is not cut!" << endl;
 
 		// ############################################################
 		// Receiving data
-		classical.receive( source, true );
+		classical.receive( source, false );
 		received++;
+
+		cout << "(master) Spectrum data received!" << endl;
 		// ############################################################
 
 		classical.add_package_to_total();
@@ -261,8 +260,6 @@ void slave_code( int world_rank )
 	Parameters parameters;
 	FileReader fileReader( "parameters_equilibrium_mean.in", &parameters ); 
 
-	MPI_Status status;
-
 	// #####################################################
 	// initializing special fourier class
 	Fourier fourier( parameters.MaxTrajectoryLength );
@@ -283,164 +280,46 @@ void slave_code( int world_rank )
 	double kT = constants::BOLTZCONST * parameters.Temperature;
 	// #####################################################
 	
-	//// #####################################################
-	REAL epsabs;    //  absolute error bound
-	REAL epsrel;    //  relative error bound    
-	REAL t0;        // left edge of integration interval
-	REAL *y0;       // [0..n-1]-vector: initial value, approxim. 
-	REAL h;         // initial, final step size
-	REAL xend;      // right edge of integration interval 
-
-	long fmax;      // maximal number of calls of right side in gear4()
-	long aufrufe;   // actual number of function calls
-	int  N;         // number of DEs in system
-	int  fehler;    // error code from umleiten(), gear4()
-
-	void *vmblock;  // List of dynamically allocated vectors
-
-	N = 4;
-	vmblock = vminit();
-	y0 = (REAL*) vmalloc(vmblock, VEKTOR, N, 0);
-
-	// accuracy of trajectory
-	epsabs = 1E-13;
-	epsrel = 1E-13;
-
-	fmax = 1e9;  		  // maximal number of calls 
-	// #####################################################
-
 	// creating objects to hold spectal info
 	SpectrumInfo classical;
 
-	vector<double> p( parameters.DIM );
-	int traj_counter = 0;
-	bool cut_trajectory = false;
+	int cut_trajectory;
+	bool exit_status = false;
+	Trajectory trajectory( parameters );
 
 	while ( true )
 	{
-		MPI_Recv( &p[0], parameters.DIM, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
-		
-		if ( status.MPI_TAG == EXIT_TAG )
-		{
-			cout << "Received exit tag." << endl;
-			break;
-		}
-		MPI_Recv( &traj_counter, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-
-		y0[0] = p[0]; 
-		y0[1] = p[1];
-		y0[2] = 0.0; 
-		y0[3] = p[2]; 
-
-		int counter = 0;
-		double R_end_value = parameters.RDIST; 
-
-		// dipole moment in laboratory frame
-		vector<double> temp( 3 );
-		vector<double> dipx_forward;
-		vector<double> dipy_forward;
-		vector<double> dipz_forward;
-
-		// #####################################################
-		t0 = 0.0;
-
-		h = 0.1;  // initial step size
-		xend = parameters.sampling_time; // initial right bound of integration
-		// #####################################################
-
 		clock_t start = clock();
 
-		cut_trajectory = false;
-		// #####################################################
-		while ( y0[0] < R_end_value ) 
-		{
-			if ( counter == parameters.MaxTrajectoryLength )
-			{
-				cout << "Forward trajectory cut!" << endl;
-				cut_trajectory = true;
-				break;
-			}
+		exit_status = trajectory.receive_initial_conditions( );
+		if ( exit_status ) 
+			break;
 
-			fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
+		trajectory.show_initial_conditions( );
+			
+		trajectory.run_trajectory( syst );
 
-			if ( fehler != 0 ) 
-			{
-				cout << "Gear4: error n = " << 10 + fehler << endl;
-				break;
-			}
+		vector<double> dipx_forward( trajectory.get_dipx() );
+		vector<double> dipy_forward( trajectory.get_dipy() );
+		vector<double> dipz_forward( trajectory.get_dipz() );
 
-			transform_dipole( temp, y0[0], y0[2] );
+		trajectory.reverse_initial_conditions( );
+		trajectory.show_initial_conditions( );
 
-			dipx_forward.push_back( temp[0] );
-			dipy_forward.push_back( temp[1] );
-			dipz_forward.push_back( temp[2] );
+		trajectory.dump_dipoles( );
 
-			xend = parameters.sampling_time * (counter + 2);
+		trajectory.run_trajectory( syst );
 
-			aufrufe = 0;  // actual number of calls
+		vector<double> dipx_backward( trajectory.get_dipx() );
+		vector<double> dipy_backward( trajectory.get_dipy() );
+		vector<double> dipz_backward( trajectory.get_dipz() );
 
-			counter++;
-		}
+		cut_trajectory = trajectory.report_trajectory_status( );
+		cout << "(slave) trajectory status is reported!" << endl;
 
-		//cout << "Finished forward trajectory part!" << endl;
-		// #####################################################
-		t0 = 0.0;
-
-		h = 0.1;  // initial step size
-		xend = parameters.sampling_time; // initial right bound of integration
-		
-		y0[0] = p[0]; 
-		y0[1] = - p[1];
-		y0[2] = 0.0; 
-		y0[3] = - p[2]; 
-		
-		vector<double> dipx_backward;
-		vector<double> dipy_backward;
-		vector<double> dipz_backward;
-		
-		while ( y0[0] < R_end_value ) 
-		{
-			if ( counter == parameters.MaxTrajectoryLength ) 
-			{
-				cout << "Backward trajectory cut!" << endl;
-				cut_trajectory = true;
-				break;
-			}
-
-			fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
-
-			if ( fehler != 0 ) 
-			{
-				cout << "Gear4: error n = " << 10 + fehler << endl;
-				break;
-			}
-
-			transform_dipole( temp, y0[0], y0[2] );
-
-			dipx_backward.push_back( temp[0] );
-			dipy_backward.push_back( temp[1] );
-			dipz_backward.push_back( temp[2] );
-
-			xend = parameters.sampling_time * (counter + 2);
-
-			aufrufe = 0;  // actual number of calls
-
-			counter++;
-		}
-		//cout << "Finished backward trajectory part!" << endl;
-		
-		int msg = 0;
-		if ( cut_trajectory )
-		{
-			cout << "Sending cutting trajectory signal!" << endl;
-			MPI_Send( &msg, 1, MPI_INT, 0, TRAJECTORY_CUT_TAG, MPI_COMM_WORLD );
+		if ( cut_trajectory == 1 )
 			continue;
-		}
-		else
-		{
-			MPI_Send( &msg, 1, MPI_INT, 0, TRAJECTORY_FINISHED_TAG, MPI_COMM_WORLD );
-		}
-
+		
 		vector<double> dipx;
 		vector<double> dipy;
 		vector<double> dipz;
@@ -449,11 +328,6 @@ void slave_code( int world_rank )
 		merge_vectors( dipy, dipy_forward, dipy_backward );
 		merge_vectors( dipz, dipz_forward, dipz_backward );
 		
-		if ( dipz.size() == 0 )
-		{
-			cout << "Starting point: " << p[0] << " " << p[1] << " " << p[2] << endl;
-		}
-
 		// #####################################################
 		// length of dipole vector = number of samples
 		int npoints = dipz.size();
@@ -502,7 +376,7 @@ void slave_code( int world_rank )
 			classical.m2_package += spectrum_value_classical * FREQ_STEP; 
 		}
 
-		cout << "(" << world_rank << ") Processing " << traj_counter << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
+		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
 		//// #################################################
 		// Sending data

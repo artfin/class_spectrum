@@ -45,4 +45,5 @@ namespace constants
 	// loshmidt constant in cm^-3
 	const double LOSHMIDT_CONSTANT_CM = 2.6867774 * 1E19; 
 
+	const double DALTON_UNIT = 1.660539040 * 1e-27;
 }

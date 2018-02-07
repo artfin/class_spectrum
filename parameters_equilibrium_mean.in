@@ -25,8 +25,8 @@ $end
 % if MCMC program is used, the NPOINTS is the total amount of points used in simulation
 
 $mcparameters
-	DIM = 3 % R, pR, pTheta 
-	initial_point = 5.0 0.1 0.4
+	DIM = 4 % R, pR, theta, pTheta 
+	initial_point = 5.0 0.1 0.2 0.4
 	alpha = 1.5 
 	subchain_length = 10
 	NPOINTS = 1000 

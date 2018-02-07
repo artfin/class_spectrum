@@ -32,7 +32,7 @@ ld_libs := $(link_fftw3) $(link_gsl)
 #
 # Gear files 
 #
-gear_diatom_src := awp.cpp basis_r.cpp fgauss.cpp gear_diatom.cpp vmblock.cpp
+gear_diatom_src := awp.cpp basis_r.cpp fgauss.cpp gear.cpp vmblock.cpp
 gear_diatom_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(gear_diatom_src)))
 #########################################################################
 
@@ -61,7 +61,7 @@ grid_he_ar: $(grid_he_ar_obj) $(grid_he_ar_objx) $(gear_diatom_obj)
 
 full_mcmc_he_ar_src := ar_he_pes_derivative.cpp ar_he_dip_buryak_fit.cpp matrix_he_ar.cpp fft.cpp parameters.cpp mcmc_generator.cpp file.cpp ar_he_pes.cpp
 full_mcmc_he_ar_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(full_mcmc_he_ar_src)))
-full_mcmc_he_ar_srcx := spectrum_info.cc full_mcmc_he_ar.cc
+full_mcmc_he_ar_srcx := spectrum_info.cc full_mcmc_he_ar.cc trajectory.cc
 full_mcmc_he_ar_objx := $(addprefix $(BUILDDIR), $(patsubst %.cc, %.oo, $(full_mcmc_he_ar_srcx)))
 full_mcmc_he_ar: $(gear_diatom_obj) $(full_mcmc_he_ar_obj) $(full_mcmc_he_ar_objx) 
 	@echo " (FULL_MCMC_HE_AR) object files: " $^
