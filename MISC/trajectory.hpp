@@ -2,7 +2,11 @@
 
 #include <mpi.h>
 #include <iostream>
+#include <vector>
 #include <cstring>
+#include <string>
+#include <fstream>
+#include <iomanip>
 
 #include "tags.hpp"
 
@@ -41,10 +45,15 @@ public:
 		vmfree( vmblock );
 	}
 
+	std::vector<std::vector<double>> trajectory;
+	void save_trajectory( std::string filename );
+
 	bool receive_initial_conditions( void ); 
 
+	void set_initial_conditions( std::vector<double>& ic );
 	void reverse_initial_conditions( void );
 	void show_initial_conditions( void );
+
 	void dump_dipoles( void );	
 
 	int report_trajectory_status( void );

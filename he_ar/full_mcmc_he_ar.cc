@@ -286,6 +286,8 @@ void slave_code( int world_rank )
 	int cut_trajectory;
 	bool exit_status = false;
 	Trajectory trajectory( parameters );
+ 
+	vector<double> ic{ 20.01347, -5.3124551, 2.6159091, 17.680292 };
 
 	while ( true )
 	{
@@ -294,10 +296,12 @@ void slave_code( int world_rank )
 		exit_status = trajectory.receive_initial_conditions( );
 		if ( exit_status ) 
 			break;
-
+	
+		trajectory.set_initial_conditions( ic );
 		trajectory.show_initial_conditions( );
 			
 		trajectory.run_trajectory( syst );
+		trajectory.save_trajectory( "traj_forward.txt" );
 
 		vector<double> dipx_forward( trajectory.get_dipx() );
 		vector<double> dipy_forward( trajectory.get_dipy() );
@@ -309,6 +313,7 @@ void slave_code( int world_rank )
 		trajectory.dump_dipoles( );
 
 		trajectory.run_trajectory( syst );
+		trajectory.save_trajectory( "traj_backward.txt" );
 
 		vector<double> dipx_backward( trajectory.get_dipx() );
 		vector<double> dipy_backward( trajectory.get_dipy() );

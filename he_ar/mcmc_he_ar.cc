@@ -38,6 +38,8 @@
 #include "vmblock.hpp"
 #include "gear.hpp"
 
+#define DEBUG 1
+
 using namespace std;
 using namespace std::placeholders;
 using Eigen::VectorXd;
@@ -80,15 +82,32 @@ void syst (REAL t, REAL *y, REAL *f)
 	delete [] out;
 }
 
-// x = [ pR, pT ]
+// x = [ pR, theta, pT ]
 double numerator_integrand_( VectorXd x, const double& R, const double& temperature )
 {
 	double pR = x( 0 );
-	double pT = x( 1 );
+	double theta = x( 1 );
+	double pT = x( 2 );
 
 	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
 }
+
+void save_trajectory( vector<vector<double>> trajectory, string filename )
+{
+	ofstream file( filename );
+	file << setprecision( 8 );
+
+	for ( size_t i = 0; i != trajectory.size(); i++ )
+	{
+		for ( size_t j = 0; j != trajectory[i].size(); ++j )
+			file << trajectory[i][j] << " ";
+		file << endl;
+	}
+
+	file.close();
+}
+
 
 // x = [ R, pR, pT ]
 double denumerator_integrand_( VectorXd x, const double& temperature )
@@ -175,29 +194,31 @@ void master_code( int world_size )
 	SpectrumInfo d1( FREQ_SIZE, "d1" );
 	SpectrumInfo d2( FREQ_SIZE, "d2" );
 	SpectrumInfo d3( FREQ_SIZE, "d3" );
-	
+
+	// vector of variables to wrap up
+	pair<int, double> p1(1, 2*M_PI);
+	vector<pair<int, double>> to_wrap{ p1 };
+
 	// creating MCMC_generator object
-	MCMC_generator generator( numerator_integrand, parameters );
+	MCMC_generator generator( numerator_integrand, parameters, to_wrap );
 	
 	// adding limits for coordinates of generated point
 	// pR = mu * vo => using v0_max \approx 5000 m/s => pR = 15, set pR(max) = 20.0
 	// b = pTheta/pR; b(max) = 12.0; set pT(max) = 250.0 
 	generator.set_point_limits()->add_limit(0, -20.0, 0.0)
-								->add_limit(1, -250.0, 250.0);
+								->add_limit(1, 0.0, 2 * M_PI)
+								->add_limit(2, -250.0, 250.0);
 
 	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
 	generator.burnin( initial_point, 10 );	
-	
+
 	// allocating histograms to store variables
 	generator.set_histogram_limits()->add_limit(0, -20.0, 20.0)
-								    ->add_limit(1, -250.0, 250.0); 
-	vector<string> names { "pR", "pT" };
+									->add_limit(1, 0.0, 2 * M_PI)
+								    ->add_limit(2, -250.0, 250.0); 
+	vector<string> names { "pR", "theta", "pT" };
 	generator.allocate_histograms( names );	
-
-	// setting indeces of pR, Jx to calculate gunsight parameter
-	generator.pR_index = 0;
-	generator.Jx_index = 2;
 
 	VectorXd p;
 	// sending first trajectory	
@@ -258,7 +279,7 @@ void master_code( int world_size )
 		if ( sent < parameters.NPOINTS )
 		{
 			p = generator.generate_point( ); 
-			//generator.show_current_point( );	
+			generator.show_current_point( );	
 
 			MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 			MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
@@ -405,6 +426,8 @@ void slave_code( int world_rank )
 		vector<double> dipy;
 		vector<double> dipz;
 
+		vector<vector<double>> trajectory;
+
 		// #####################################################
 		t0 = 0.0;
 
@@ -425,16 +448,14 @@ void slave_code( int world_rank )
 
 			fehler = gear4(&t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe);
 
-			//cout << "%%%" << endl;
-			//cout << "t0: " << t0 << endl;
-			//cout << "xend: " << xend << endl;
-			//cout << "%%%" << endl;
-
 			if ( fehler != 0 ) 
 			{
 				cout << "Gear4: error n = " << 10 + fehler << endl;
 				break;
 			}
+
+			vector<double> coords { y0[0], y0[1], y0[2], y0[3] };
+			trajectory.push_back( coords );
 
 			transform_dipole( temp, y0[0], y0[2] );
 
@@ -454,6 +475,8 @@ void slave_code( int world_rank )
 			counter++;
 		}
 		// #####################################################
+
+		save_trajectory( trajectory, "trajectory.txt" );
 
 		// #####################################################
 		// length of dipole vector = number of samples

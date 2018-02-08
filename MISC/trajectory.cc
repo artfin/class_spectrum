@@ -18,6 +18,23 @@ bool Trajectory::receive_initial_conditions( void )
 	return false;
 }
 
+void Trajectory::save_trajectory( std::string filename )
+{
+	std::ofstream file( filename );
+
+	file << std::setprecision( 8 );
+	for ( size_t i = 0; i != trajectory.size(); ++i)
+	{
+		for ( size_t j = 0; j != trajectory[i].size(); ++j )
+			file << trajectory[i][j] << " ";
+		file << std::endl;
+	}
+
+	trajectory.clear();
+	std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
+	file.close();
+}
+
 void Trajectory::reverse_initial_conditions( void )
 {
 	memcpy( y0, y0_copy, N * sizeof(REAL) );
@@ -47,6 +64,12 @@ int Trajectory::report_trajectory_status( void )
 	}
 
 	return cut_trajectory;
+}
+
+void Trajectory::set_initial_conditions( std::vector<double>& ic )
+{
+	memcpy( y0, &ic[0], ic.size() * sizeof(double) );
+	memcpy( y0_copy, &ic[0], ic.size() * sizeof(double) );
 }
 
 void Trajectory::show_initial_conditions( void )
@@ -95,6 +118,9 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			cout << "Gear4: error n = " << 10 + fehler << endl;
 			break;
 		}
+
+		std::vector<double> coords{ y0[0], y0[1], y0[2], y0[3] };
+		trajectory.push_back( coords );
 
 		transform_dipole( temp, y0[0], y0[2] );
 		dipx.push_back( temp[0] );

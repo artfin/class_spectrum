@@ -62,9 +62,13 @@ public:
 		
 	function<double(VectorXd)> f;
 
+#ifdef DEBUG
+	std::mt19937 generator{ 0 };
+#else
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::mt19937 generator{ seed }; 
-	
+#endif	
+
 	void set_initial_point( std::vector<double> ip );
 	void show_current_point( void );
 
@@ -74,9 +78,6 @@ public:
 
 	void burnin( VectorXd initial_point, const int& burnin_length );
 	VectorXd metro_step( VectorXd& x );
-
-	int pR_index;
-	int Jx_index;
 
 	VectorXd generate_point( ); 
 	VectorXd generate_free_state_point( void );
