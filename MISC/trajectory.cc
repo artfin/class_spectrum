@@ -31,7 +31,6 @@ void Trajectory::save_trajectory( std::string filename )
 	}
 
 	trajectory.clear();
-	std::cout << "trajectory.size(): " << trajectory.size() << std::endl;
 	file.close();
 }
 
@@ -85,7 +84,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 	REAL epsabs = 1E-13; // absolute error bound
 	REAL epsrel = 1E-13; // relative error bound
 
-	REAL t0 = 0.0; // left edge of integration interval
+	REAL t0 =  0; 
 	REAL h = 0.1; // initial, final step size
 	REAL xend = parameters.sampling_time; // right edge of integration interval
 
@@ -94,8 +93,6 @@ void Trajectory::run_trajectory( dglsysfnk syst )
    	int fehler;  // error code from gear4()	
 
 	std::vector<double> temp( 3 );	
-
-	std::cout << "(slave) before while" << std::endl;
 
 	int counter = 0;
 	while( y0[0] < parameters.RDIST )
@@ -107,11 +104,6 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			break;
 		}
 
-		/*
-		if ( counter % 100 == 0 )
-			std::cout << "counter: " << counter << std::endl;
-		*/
-
 		fehler = gear4( &t0, xend, N, syst, y0, epsabs, epsrel, &h, fmax, &aufrufe );
 		if ( fehler != 0 )
 		{
@@ -119,7 +111,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			break;
 		}
 
-		std::vector<double> coords{ y0[0], y0[1], y0[2], y0[3] };
+		std::vector<double> coords{ t0, y0[0], y0[1], y0[2], y0[3] };
 		trajectory.push_back( coords );
 
 		transform_dipole( temp, y0[0], y0[2] );
@@ -132,6 +124,4 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 
 		counter++;
 	}
-
-	std::cout << "(slave) after while" << std::endl;
 }

@@ -454,7 +454,7 @@ void slave_code( int world_rank )
 				break;
 			}
 
-			vector<double> coords { y0[0], y0[1], y0[2], y0[3] };
+			vector<double> coords { t0, y0[0], y0[1], y0[2], y0[3] };
 			trajectory.push_back( coords );
 
 			transform_dipole( temp, y0[0], y0[2] );
@@ -522,7 +522,7 @@ void slave_code( int world_rank )
 
 			spectrum_value_classical = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega *  ( 1.0 - exp( - constants::PLANCKCONST_REDUCED * omega / kT ) ) * dipfft;
 
-			spectrum_value_classical *= pR_weight;
+			//spectrum_value_classical *= pR_weight;
 			
 			classical.spectrum_package.push_back( spectrum_value_classical );
 
@@ -530,6 +530,8 @@ void slave_code( int world_rank )
 		}
 
 		cout << "(" << world_rank << ") Processing " << traj_counter << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
+
+		classical.save_package( freqs, "classical_package.txt" );
 
 		//// #################################################
 		// Sending data

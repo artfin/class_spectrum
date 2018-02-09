@@ -133,7 +133,6 @@ void SpectrumInfo::send( void )
 void SpectrumInfo::receive( int& source, bool define_source )
 {
 	MPI_Status status;
-	
 	//std::cout << "(misc) define_source: " << std::boolalpha << define_source << std::endl;
 	
 	// finding out a source
@@ -172,6 +171,16 @@ void SpectrumInfo::save( const double& m2, std::string filename )
 
 	file << "M2: " << m2 << endl;
 		
+	file.close();
+}
+
+void SpectrumInfo::save_package( std::vector<double> const& freqs, std::string const filename )
+{
+	std::ofstream file( filename );
+
+	for ( size_t k = 0; k != spectrum_package.size(); ++k )
+		file << freqs[k] << " " << spectrum_package[k] << endl;
+	
 	file.close();
 }
 

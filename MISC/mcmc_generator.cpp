@@ -101,6 +101,26 @@ VectorXd MCMC_generator::metro_step( VectorXd& x )
 	return x;
 }
 
+// why the hell I pass here a reference?
+VectorXd MCMC_generator::metro_step_with_bounds( VectorXd & const x )
+{
+	VectorXd prop( paramters.DIM );
+	nextGaussianVec( prop, x );
+
+	bool make_move = true;
+	if ( nextDouble(0.0, 1.0) < std::min( 1.0, f(prop) / f(x) ))
+	{
+		for ( size_t i = 0; i < parameters.DIM; i++ )
+		{
+			if ( prop(i) > plimits.limits[i].ub || prop(i) < plimits.limits[i].lb )
+				make_move = false;
+		}
+	}
+
+	if ( make_move ) return prop;
+	return x;
+}
+
 void MCMC_generator::burnin( VectorXd initial_point, const int& burnin_length )
 {
 	this->initial_point = initial_point;
@@ -151,48 +171,14 @@ VectorXd MCMC_generator::generate_free_state_point( void )
 	VectorXd x = current_point;
 	VectorXd xnew;
 
-	bool point_found = false;
-
-	while( !point_found )
+	while( moves < parameters.subchain_length)
 	{
-		xnew = metro_step( x );
+		xnew = metro_step_with_bounds( x );
 
 		if ( xnew != x )
 		{
 			x = xnew;
 			moves++;
-		}
-		
-		if ( moves > parameters.subchain_length )
-		{
-			if ( f(x) > 0 )
-			{
-				if ( set_plimits )
-				{
-					point_found = true;	
-					for ( size_t i = 0; i < parameters.DIM; i++ )
-					{
-						if ( x(i) > plimits.limits[i].ub || x(i) < plimits.limits[i].lb )
-						{
-							point_found = false;
-						}
-					}	
-				}
-				else
-				{
-					point_found = true;
-				}
-			}
-		}
-
-		if ( moves > 50 * parameters.subchain_length )
-		{
-			//cout << "moves made: " << moves << endl;
-			//cout << "restarting chain from initial point!" << endl;
-			
-			burnin( initial_point, burnin_length );
-		   	x = current_point;
-			moves = 0;	
 		}
 	}
 	

@@ -57,15 +57,9 @@ const double MU = MU_SI / constants::AMU;
 void syst (REAL t, REAL *y, REAL *f)
 {
   	(void)(t); // avoid unused parameter warning 
-
 	double *out = new double[4];
 
 	rhs( out, y[0], y[1], y[2], y[3] );
-
-	//cout << "out[0]: " << out[0] << endl;
-	//cout << "out[1]: " << out[1] << endl;
-	//cout << "out[2]: " << out[2] << endl;
-	//cout << "out[3]: " << out[3] << endl;
 
 	f[0] = out[0]; // \dot{R} 
 	f[1] = out[1]; // \dot{p_R}
@@ -152,10 +146,10 @@ void master_code( int world_size )
 		generator.show_current_point();
 
 		MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD );
-		cout << "(master) sent point " << endl;
+		//cout << "(master) sent point " << endl;
 
 		MPI_Send( &sent, 1, MPI_INT, i, 0, MPI_COMM_WORLD );
-		cout << "(master) sent number of trajectory" << endl;
+		//cout << "(master) sent number of trajectory" << endl;
 
 		sent++;
 	}
@@ -167,38 +161,38 @@ void master_code( int world_size )
 		if ( is_finished )	
 		{
 			for ( int i = 1; i < world_size; i++ )
-			{	
 				MPI_Send( &is_finished, 1, MPI_INT, i, tags::EXIT_TAG, MPI_COMM_WORLD );
-			}
 
 			break;
 		}
 
 		int msg;
-		MPI_Recv( &msg, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
+		MPI_Recv( &msg, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+	   	source = status.MPI_SOURCE;	
+
 		if ( status.MPI_TAG == tags::TRAJECTORY_CUT_TAG )
 		{
-			cout << "(0) Received cutting trajectory tag!" << endl;
+			cout << "(master) Received cutting trajectory tag!" << endl;
 			if ( sent < parameters.NPOINTS )
 			{
-				source = status.MPI_SOURCE;
 				p = generator.generate_free_state_point( );
+				cout << "(master) Sending new point!" << endl;
 				MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 				MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
 				sent++;
+				cout << "(master) Sent new point" << endl;
 
 				continue;
 			}
 		}
-		if ( status.MPI_TAG == tags::TRAJECTORY_FINISHED_TAG )
-			cout << "(master) Trajectory is not cut!" << endl;
+	
+		//if ( status.MPI_TAG == tags::TRAJECTORY_FINISHED_TAG )
+		//	cout << "(master) Trajectory is not cut!" << endl;
 
 		// ############################################################
 		// Receiving data
 		classical.receive( source, false );
 		received++;
-
-		cout << "(master) Spectrum data received!" << endl;
 		// ############################################################
 
 		classical.add_package_to_total();
@@ -286,8 +280,6 @@ void slave_code( int world_rank )
 	int cut_trajectory;
 	bool exit_status = false;
 	Trajectory trajectory( parameters );
- 
-	vector<double> ic{ 20.01347, -5.3124551, 2.6159091, 17.680292 };
 
 	while ( true )
 	{
@@ -296,32 +288,25 @@ void slave_code( int world_rank )
 		exit_status = trajectory.receive_initial_conditions( );
 		if ( exit_status ) 
 			break;
-	
-		trajectory.set_initial_conditions( ic );
-		trajectory.show_initial_conditions( );
-			
+
 		trajectory.run_trajectory( syst );
-		trajectory.save_trajectory( "traj_forward.txt" );
 
 		vector<double> dipx_forward( trajectory.get_dipx() );
 		vector<double> dipy_forward( trajectory.get_dipy() );
 		vector<double> dipz_forward( trajectory.get_dipz() );
 
 		trajectory.reverse_initial_conditions( );
-		trajectory.show_initial_conditions( );
 
 		trajectory.dump_dipoles( );
 
 		trajectory.run_trajectory( syst );
-		trajectory.save_trajectory( "traj_backward.txt" );
 
 		vector<double> dipx_backward( trajectory.get_dipx() );
 		vector<double> dipy_backward( trajectory.get_dipy() );
 		vector<double> dipz_backward( trajectory.get_dipz() );
 
 		cut_trajectory = trajectory.report_trajectory_status( );
-		cout << "(slave) trajectory status is reported!" << endl;
-
+			
 		if ( cut_trajectory == 1 )
 			continue;
 		
@@ -332,7 +317,7 @@ void slave_code( int world_rank )
 		merge_vectors( dipx, dipx_forward, dipx_backward );
 		merge_vectors( dipy, dipy_forward, dipy_backward );
 		merge_vectors( dipz, dipz_forward, dipz_backward );
-		
+
 		// #####################################################
 		// length of dipole vector = number of samples
 		int npoints = dipz.size();
@@ -383,7 +368,7 @@ void slave_code( int world_rank )
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
-		//// #################################################
+		/// #################################################
 		// Sending data
 		classical.send();
 		classical.clear_package();

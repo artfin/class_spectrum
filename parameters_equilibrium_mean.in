@@ -33,7 +33,7 @@ $mcparameters
 $end
 
 $files
-	output_directory = results/equilibrium_mean/1000/
+	output_directory = ./ 
 	specfunc_filename = specfunc.txt
 	m2_filename = m2.txt
 	spectrum_filename = spectrum.txt

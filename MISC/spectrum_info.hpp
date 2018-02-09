@@ -64,6 +64,7 @@ public:
 
 	void save( std::vector<double>& v1, std::vector<double>& v2, std::string filename );
 	void save( const double& m2, std::string filename );
+	void save_package( std::vector<double> const& freqs, std::string const filename );
 
 	void saving_procedure( Parameters& parameters, std::vector<double>& freqs, const std::string filename = "", const std::string type = "" );
 	std::string modify_filename( std::string filename, std::string modifier );
