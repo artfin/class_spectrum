@@ -70,13 +70,19 @@ void syst (REAL t, REAL *y, REAL *f)
 }
 
 // x = [ R, pR, pT ]
-double numerator_integrand_( VectorXd x, const double& temperature )
+double hamiltonian( VectorXd x )
 {
 	double R = x( 0 );
 	double pR = x( 1 );
 	double pT = x( 2 );
 
-	double h = pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
+	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
+}
+
+// x = [ R, pR, pT ]
+double numerator_integrand_( VectorXd x, const double& temperature )
+{
+	double h = hamiltonian( x );
 	return exp( -h * constants::HTOJ / (constants::BOLTZCONST * temperature )); 
 }
 
@@ -123,26 +129,27 @@ void master_code( int world_size )
 	
 	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
-	generator.burnin( initial_point, 10000 );	
+	generator.burnin( initial_point, 5 );	
 
-	/*
 	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
 								->add_limit(1, -50.0, 50.0)
 								->add_limit(2, -250.0, 250.0);
 
 	// allocating histograms to store variables
-	generator.set_histogram_limits()->add_limit(0, 0.0, parameters.RDIST)
+	/*
+	generator.set_histogram_limits()->add_limit(0, 0.0, 40.0) 
 									->add_limit(1, -50.0, 50.0)
-								    ->add_limit(2, -250.0, 250.0); 
+								    ->add_limit(2, -250.0, 250.0);
+
 	vector<string> names { "R", "pR", "pT" };
 	generator.allocate_histograms( names );	
 	*/
-	
+
 	VectorXd p;
 	// sending first trajectory	
 	for ( int i = 1; i < world_size; i++ )
 	{
-		p = generator.generate_free_state_point( );
+		p = generator.generate_free_state_point( hamiltonian );
 		generator.show_current_point();
 
 		MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD );
@@ -175,7 +182,9 @@ void master_code( int world_size )
 			cout << "(master) Received cutting trajectory tag!" << endl;
 			if ( sent < parameters.NPOINTS )
 			{
-				p = generator.generate_free_state_point( );
+				p = generator.generate_free_state_point( hamiltonian );
+				generator.show_current_point();
+
 				cout << "(master) Sending new point!" << endl;
 				MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 				MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
@@ -197,6 +206,7 @@ void master_code( int world_size )
 
 		classical.add_package_to_total();
 
+		/*
 		string name = "temp";
 		stringstream ss;
 		if ( received % 500 == 0 )
@@ -208,6 +218,7 @@ void master_code( int world_size )
 			classical.saving_procedure( parameters, freqs, name + ss.str() + ".txt", "total" );
 			classical.zero_out_total();
 		}
+		*/
 
 		if ( received == parameters.NPOINTS )
 		{
@@ -222,7 +233,7 @@ void master_code( int world_size )
 
 		if ( sent < parameters.NPOINTS )
 		{
-			p = generator.generate_free_state_point( ); 
+			p = generator.generate_free_state_point( hamiltonian ); 
 			generator.show_current_point( );	
 
 			MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );

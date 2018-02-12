@@ -80,7 +80,9 @@ public:
 	VectorXd metro_step( VectorXd& x );
 
 	VectorXd generate_point( ); 
-	VectorXd generate_free_state_point( void );
+	VectorXd generate_free_state_point( 
+		function<double(VectorXd)> hamiltonian 
+									  );
 
 	MCMC_generator( 
 		function<double(VectorXd)> f,

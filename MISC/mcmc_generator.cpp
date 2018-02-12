@@ -102,24 +102,24 @@ VectorXd MCMC_generator::metro_step( VectorXd& x )
 }
 
 // why the hell I pass here a reference?
-VectorXd MCMC_generator::metro_step_with_bounds( VectorXd & const x )
-{
-	VectorXd prop( paramters.DIM );
-	nextGaussianVec( prop, x );
+//VectorXd MCMC_generator::metro_step_with_bounds( VectorXd & const x )
+//{
+	//VectorXd prop( paramters.DIM );
+	//nextGaussianVec( prop, x );
 
-	bool make_move = true;
-	if ( nextDouble(0.0, 1.0) < std::min( 1.0, f(prop) / f(x) ))
-	{
-		for ( size_t i = 0; i < parameters.DIM; i++ )
-		{
-			if ( prop(i) > plimits.limits[i].ub || prop(i) < plimits.limits[i].lb )
-				make_move = false;
-		}
-	}
+	//bool make_move = true;
+	//if ( nextDouble(0.0, 1.0) < std::min( 1.0, f(prop) / f(x) ))
+	//{
+		//for ( size_t i = 0; i < parameters.DIM; i++ )
+		//{
+			//if ( prop(i) > plimits.limits[i].ub || prop(i) < plimits.limits[i].lb )
+				//make_move = false;
+		//}
+	//}
 
-	if ( make_move ) return prop;
-	return x;
-}
+	//if ( make_move ) return prop;
+	//return x;
+//}
 
 void MCMC_generator::burnin( VectorXd initial_point, const int& burnin_length )
 {
@@ -159,7 +159,7 @@ void MCMC_generator::show_current_point( void )
 	cout << endl;
 }
 
-VectorXd MCMC_generator::generate_free_state_point( void )
+VectorXd MCMC_generator::generate_free_state_point( function<double(VectorXd)> hamiltonian )
 {
 	if ( burnin_done == false )
 	{
@@ -173,20 +173,39 @@ VectorXd MCMC_generator::generate_free_state_point( void )
 
 	while( moves < parameters.subchain_length)
 	{
-		xnew = metro_step_with_bounds( x );
+		//xnew = metro_step_with_bounds( x );
+		xnew = metro_step( x );
 
+		bool lies_inside_limits = true;
 		if ( xnew != x )
 		{
-			x = xnew;
-			moves++;
+			if ( hamiltonian(xnew) > 0 )
+			{
+				if ( set_plimits ) 
+				{
+					for ( size_t i = 0; i < plimits.limits.size(); i++ )
+					{
+						if ( xnew(i) < plimits.limits[i].lb || xnew(i) > plimits.limits[i].ub )
+							lies_inside_limits = false;
+
+						//std::cout << "xnew(" << i << ") = " << xnew(i) << "; limits[i].first: " << plimits.limits[i].lb << ": limits[i].second: " << plimits.limits[i].ub << std::endl;
+					}
+				}
+			}
+			
+			if ( lies_inside_limits )
+			{
+				x = xnew;
+				moves++;
+			}
 		}
 	}
 	
-	if ( set_histograms )
-	{
-		for ( size_t i = 0; i < parameters.DIM; i++ )
-			gsl_histogram_increment( histograms[i], x(i) );
-	}	
+	//if ( set_histograms )
+	//{
+		//for ( size_t i = 0; i < parameters.DIM; i++ )
+			//gsl_histogram_increment( histograms[i], x(i) );
+	//}	
 
 	current_point = x;
 	return x;
@@ -234,21 +253,12 @@ VectorXd MCMC_generator::generate_point( )
 		{
 			if ( set_plimits )
 			{
-				//cout << ">> generated point: ";
-				
 				point_found = true;	
 				for ( size_t i = 0; i < parameters.DIM; i++ )
 				{
-					if ( x(i) > plimits.limits[i].ub || x(i) < plimits.limits[i].lb )
-					{
+					if ( xnew(i) > plimits.limits[i].ub || xnew(i) < plimits.limits[i].lb )
 						point_found = false;
-					}
-
-					//cout << "x(" << i << ") = " << x(i)
-							//<< " (lb: " << plimits.limits[i].lb << "; ub: " << plimits.limits[i].ub << ");";
 				}	
-
-				//cout << endl;	
 			}
 
 		}

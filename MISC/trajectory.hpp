@@ -23,8 +23,6 @@ public:
 	Trajectory( Parameters & parameters )
 		: parameters(parameters)
 	{
-		std::cout << "(trajectory) constructor" << std::endl;
-
 		vmblock = vminit();
 	
 		N = parameters.DIM;
