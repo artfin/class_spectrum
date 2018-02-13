@@ -292,6 +292,8 @@ void slave_code( int world_rank )
 	bool exit_status = false;
 	Trajectory trajectory( parameters );
 
+	stringstream ss;
+
 	while ( true )
 	{
 		clock_t start = clock();
@@ -302,6 +304,9 @@ void slave_code( int world_rank )
 
 		trajectory.run_trajectory( syst );
 
+		//ss << trajectory.get_trajectory_counter();
+		//trajectory.save_trajectory( "forw_trajectory_" + ss.str() + ".txt" );
+
 		vector<double> dipx_forward( trajectory.get_dipx() );
 		vector<double> dipy_forward( trajectory.get_dipy() );
 		vector<double> dipz_forward( trajectory.get_dipz() );
@@ -311,6 +316,8 @@ void slave_code( int world_rank )
 		trajectory.dump_dipoles( );
 
 		trajectory.run_trajectory( syst );
+		//trajectory.save_trajectory( "back_trajectory_" + ss.str() + ".txt" );
+		//ss.str("");
 
 		vector<double> dipx_backward( trajectory.get_dipx() );
 		vector<double> dipy_backward( trajectory.get_dipy() );
@@ -375,6 +382,13 @@ void slave_code( int world_rank )
 			classical.spectrum_package.push_back( spectrum_value_classical );
 
 			classical.m2_package += spectrum_value_classical * FREQ_STEP; 
+
+			/*			
+			if ( freqs[k] > 300 && spectrum_value_classical > 1e4 )
+			{
+				cout << "freqs[" << k << "] = " << freqs[k] << "; spectrum_value_classical: " << spectrum_value_classical << endl;
+			}
+			*/
 		}
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;

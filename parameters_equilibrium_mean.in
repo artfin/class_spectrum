@@ -29,14 +29,12 @@ $mcparameters
 	initial_point = 10.0 0.01 0.1 1.0 
 	alpha = 4 
 	subchain_length = 10
-	NPOINTS = 100 
+	NPOINTS = 500
 $end
 
 $files
 	output_directory = ./ 
-	specfunc_filename = specfunc.txt
-	m2_filename = m2.txt
-	spectrum_filename = spectrum.txt
+	specfunc_filename = specfunc_eq_mean.txt
+	m2_filename = m2_eq_mean.txt
+	spectrum_filename = spectrum_eq_mean.txt
 $end
-
-

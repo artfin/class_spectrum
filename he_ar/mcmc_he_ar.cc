@@ -225,6 +225,8 @@ void master_code( int world_size )
 	for ( int i = 1; i < world_size; i++ )
 	{
 		p = generator.generate_point( );
+		generator.show_current_point();
+
 		MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, i, 0, MPI_COMM_WORLD );
 		MPI_Send( &sent, 1, MPI_INT, i, 0, MPI_COMM_WORLD );
 
@@ -407,6 +409,13 @@ void slave_code( int world_rank )
 		y0[1] = p[0];
 		y0[2] = p[1]; 
 		y0[3] = p[2]; 
+
+		/*
+		y0[0] = 37.807431;
+	   	y0[1] =	-4.3982344;
+	   	y0[2] = 46.923225;
+		y0[3] = 6.1504986; 
+		*/
 
 		double pR_weight = abs( p[0] / MU ) * pow( parameters.RDIST * constants::ALU, 2 ) / constants::ATU;
 
