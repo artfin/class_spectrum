@@ -69,17 +69,18 @@ void syst (REAL t, REAL *y, REAL *f)
 	delete [] out;
 }
 
-// x = [ R, pR, pT ]
+// x = [ R, pR, theta, pT ]
 double hamiltonian( VectorXd x )
 {
 	double R = x( 0 );
-	double pR = x( 1 );
-	double pT = x( 2 );
+	double theta = x( 1 );
+	double pR = x( 2 );
+	double pT = x( 3 );
 
 	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
 }
 
-// x = [ R, pR, pT ]
+// x = [ R, theta, pR, pT ]
 double numerator_integrand_( VectorXd x, const double& temperature )
 {
 	double h = hamiltonian( x );
@@ -132,8 +133,9 @@ void master_code( int world_size )
 	generator.burnin( initial_point, 5 );	
 
 	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
-								->add_limit(1, -50.0, 50.0)
-								->add_limit(2, -250.0, 250.0);
+								->add_limit(1, 0.0, 2 * M_PI)
+								->add_limit(2, -50.0, 50.0)
+								->add_limit(3, -250.0, 250.0);
 
 	// allocating histograms to store variables
 	/*
@@ -206,19 +208,19 @@ void master_code( int world_size )
 
 		classical.add_package_to_total();
 
-		/*
 		string name = "temp";
 		stringstream ss;
-		if ( received % 500 == 0 )
+
+		int block_trajectory_size = 50; 
+		if ( received % block_trajectory_size == 0 )
 		{
-			double multiplier = 1.0 / parameters.NPOINTS;
+			double multiplier = 1.0 / block_trajectory_size; 
 			classical.multiply_total( multiplier );
 			
 			ss << received;
 			classical.saving_procedure( parameters, freqs, name + ss.str() + ".txt", "total" );
 			classical.zero_out_total();
 		}
-		*/
 
 		if ( received == parameters.NPOINTS )
 		{
