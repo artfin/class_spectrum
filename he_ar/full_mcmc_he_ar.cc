@@ -130,22 +130,21 @@ void master_code( int world_size )
 	
 	// initializing initial point to start burnin from
 	VectorXd initial_point = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>( parameters.initial_point.data(), parameters.initial_point.size());	
-	generator.burnin( initial_point, 5 );	
+	generator.burnin( initial_point, 2 );	
 
-	generator.set_point_limits()->add_limit(0, 0.0, 40.0)
+	generator.set_point_limits()->add_limit(0, 4.0, 40.0)
 								->add_limit(1, 0.0, 2 * M_PI)
 								->add_limit(2, -50.0, 50.0)
 								->add_limit(3, -250.0, 250.0);
 
 	// allocating histograms to store variables
-	/*
-	generator.set_histogram_limits()->add_limit(0, 0.0, 40.0) 
-									->add_limit(1, -50.0, 50.0)
-								    ->add_limit(2, -250.0, 250.0);
+	generator.set_histogram_limits()->add_limit(0, 0.0, 40.0)
+		   							->add_limit(1, 0.0, 2 * M_PI)	
+									->add_limit(2, -50.0, 50.0)
+								    ->add_limit(3, -250.0, 250.0);
 
-	vector<string> names { "R", "pR", "pT" };
+	vector<string> names { "R", "theta", "pR", "pT" };
 	generator.allocate_histograms( names );	
-	*/
 
 	VectorXd p;
 	// sending first trajectory	
@@ -211,7 +210,7 @@ void master_code( int world_size )
 		string name = "temp";
 		stringstream ss;
 
-		int block_trajectory_size = 50; 
+		int block_trajectory_size = 500; 
 		if ( received % block_trajectory_size == 0 )
 		{
 			double multiplier = 1.0 / block_trajectory_size; 
@@ -290,7 +289,7 @@ void slave_code( int world_rank )
 	// creating objects to hold spectal info
 	SpectrumInfo classical;
 
-	int cut_trajectory;
+	int cut_trajectory = 0;
 	bool exit_status = false;
 	Trajectory trajectory( parameters );
 
@@ -298,12 +297,16 @@ void slave_code( int world_rank )
 
 	while ( true )
 	{
+		cut_trajectory = 0;
+		trajectory.set_cut_trajectory( 0 );	
+
 		clock_t start = clock();
 
 		exit_status = trajectory.receive_initial_conditions( );
 		if ( exit_status ) 
 			break;
-
+	
+		//trajectory.show_initial_conditions();
 		trajectory.run_trajectory( syst );
 
 		//ss << trajectory.get_trajectory_counter();

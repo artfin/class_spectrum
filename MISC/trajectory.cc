@@ -97,7 +97,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 	int counter = 0;
 	while( y0[0] < parameters.RDIST )
 	{
-		if ( counter == parameters.MaxTrajectoryLength )
+		if ( counter == parameters.MaxTrajectoryLength / 2 )
 		{
 			cout << "Trajectory cut!" << endl;
 			cut_trajectory = 1; 

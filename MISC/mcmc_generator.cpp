@@ -201,11 +201,11 @@ VectorXd MCMC_generator::generate_free_state_point( function<double(VectorXd)> h
 		}
 	}
 	
-	//if ( set_histograms )
-	//{
-		//for ( size_t i = 0; i < parameters.DIM; i++ )
-			//gsl_histogram_increment( histograms[i], x(i) );
-	//}	
+	if ( set_histograms )
+	{
+		for ( size_t i = 0; i < parameters.DIM; i++ )
+			gsl_histogram_increment( histograms[i], x(i) );
+	}	
 
 	current_point = x;
 	return x;

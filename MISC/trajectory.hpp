@@ -63,6 +63,8 @@ public:
 	std::vector<double> & get_dipz( void ) { return dipz; }	
 
 	int get_trajectory_counter( void ) const { return trajectory_counter; }
+	void set_cut_trajectory( int status ) { cut_trajectory = status; }
+
 private:
 	Parameters parameters;
 
