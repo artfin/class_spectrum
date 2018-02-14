@@ -55,19 +55,19 @@ void Fourier::copy_into_fourier_array( std::vector<double>& v, std::string type 
 {
 	if ( type == "x" )
 	{
-		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+		for ( size_t k = 0; k < v.size(); k++ )
 			inx[k] = v[k];
 	}
 
 	if ( type == "y" )
 	{
-		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+		for ( size_t k = 0; k < v.size(); k++ )
 			iny[k] = v[k];
 	}
 
 	if ( type == "z" )
 	{
-		for ( size_t k = 0; k < std::min(MaxTrajectoryLength, (int) v.size()); k++ )
+		for ( size_t k = 0; k < v.size(); k++ )
 			inz[k] = v[k];
 	}
 }

@@ -210,7 +210,7 @@ void master_code( int world_size )
 		string name = "temp";
 		stringstream ss;
 
-		int block_trajectory_size = 500; 
+		int block_trajectory_size = 1; 
 		if ( received % block_trajectory_size == 0 )
 		{
 			double multiplier = 1.0 / block_trajectory_size; 
@@ -245,7 +245,7 @@ void master_code( int world_size )
 	}
 }
 
-void merge_vectors( vector<double>& merged, vector<double>& forward, vector<double>& backward )
+void merge_vectors( vector<double> & merged, vector<double> & forward, vector<double> & backward )
 {
 	reverse( forward.begin(), forward.end() );
 	for ( size_t k = 0; k < forward.size(); k++ )
@@ -295,6 +295,10 @@ void slave_code( int world_rank )
 
 	stringstream ss;
 
+	vector<double> dipx, dipx_forward, dipx_backward;
+	vector<double> dipy, dipy_forward, dipy_backward;
+	vector<double> dipz, dipz_forward, dipz_backward;
+
 	while ( true )
 	{
 		cut_trajectory = 0;
@@ -305,37 +309,33 @@ void slave_code( int world_rank )
 		exit_status = trajectory.receive_initial_conditions( );
 		if ( exit_status ) 
 			break;
-	
-		//trajectory.show_initial_conditions();
+		
 		trajectory.run_trajectory( syst );
 
 		//ss << trajectory.get_trajectory_counter();
-		//trajectory.save_trajectory( "forw_trajectory_" + ss.str() + ".txt" );
+		//trajectory.save_trajectory( "test_trajectories2/forw_trajectory_" + ss.str() + ".txt" );
 
-		vector<double> dipx_forward( trajectory.get_dipx() );
-		vector<double> dipy_forward( trajectory.get_dipy() );
-		vector<double> dipz_forward( trajectory.get_dipz() );
+		dipx_forward = trajectory.get_dipx();
+		dipy_forward = trajectory.get_dipy();
+		dipz_forward = trajectory.get_dipz();
+		trajectory.dump_dipoles( );
 
 		trajectory.reverse_initial_conditions( );
 
-		trajectory.dump_dipoles( );
-
 		trajectory.run_trajectory( syst );
-		//trajectory.save_trajectory( "back_trajectory_" + ss.str() + ".txt" );
+	
+		//trajectory.save_trajectory( "test_trajectories2/back_trajectory_" + ss.str() + ".txt" );
 		//ss.str("");
 
-		vector<double> dipx_backward( trajectory.get_dipx() );
-		vector<double> dipy_backward( trajectory.get_dipy() );
-		vector<double> dipz_backward( trajectory.get_dipz() );
+		dipx_backward = trajectory.get_dipx();
+		dipy_backward = trajectory.get_dipy();
+		dipz_backward = trajectory.get_dipz();
+		trajectory.dump_dipoles();
 
 		cut_trajectory = trajectory.report_trajectory_status( );
 			
 		if ( cut_trajectory == 1 )
 			continue;
-		
-		vector<double> dipx;
-		vector<double> dipy;
-		vector<double> dipz;
 		
 		merge_vectors( dipx, dipx_forward, dipx_backward );
 		merge_vectors( dipy, dipy_forward, dipy_backward );
@@ -351,6 +351,9 @@ void slave_code( int world_rank )
 		fourier.copy_into_fourier_array( dipx, "x" );
 		fourier.copy_into_fourier_array( dipy, "y" );
 		fourier.copy_into_fourier_array( dipz, "z" );
+		dipx.clear();
+		dipy.clear();
+		dipz.clear();
 
 		// executing fourier transform
 		fourier.do_fourier( );
@@ -431,6 +434,8 @@ int main( int argc, char* argv[] )
 	{
 		slave_code( world_rank );
 	}
+
+	cout << "(before) MPI_Finalize()" << endl;
 
 	MPI_Finalize();
 
