@@ -27,13 +27,13 @@ $end
 $mcparameters
 	DIM = 4 % R, pR, theta, pTheta 
 	initial_point = 10.0 0.01 0.1 1.0 
-	alpha = 4 
+	alpha = 2.0 
 	subchain_length = 10
 	NPOINTS = 10
 $end
 
 $files
-	output_directory = ./test_trajectories2/ 
+	output_directory = ./results/equilibrium_mean/50000/
 	specfunc_filename = specfunc_eq_mean.txt
 	m2_filename = m2_eq_mean.txt
 	spectrum_filename = spectrum_eq_mean.txt

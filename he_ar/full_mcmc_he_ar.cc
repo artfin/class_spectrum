@@ -15,6 +15,7 @@
 
 // matrix multiplication
 #include "matrix_he_ar.hpp"
+#include "ar_he_pes.hpp"
 // FileReader class
 #include "file.hpp"
 // Parameters class
@@ -77,7 +78,7 @@ double hamiltonian( VectorXd x )
 	double pR = x( 2 );
 	double pT = x( 3 );
 
-	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R);
+	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R) + ar_he_pot( R );
 }
 
 // x = [ R, theta, pR, pT ]
@@ -210,7 +211,7 @@ void master_code( int world_size )
 		string name = "temp";
 		stringstream ss;
 
-		int block_trajectory_size = 1; 
+		int block_trajectory_size = 500; 
 		if ( received % block_trajectory_size == 0 )
 		{
 			double multiplier = 1.0 / block_trajectory_size; 
