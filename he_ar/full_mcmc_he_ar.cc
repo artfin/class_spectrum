@@ -436,8 +436,6 @@ int main( int argc, char* argv[] )
 		slave_code( world_rank );
 	}
 
-	cout << "(before) MPI_Finalize()" << endl;
-
 	MPI_Finalize();
 
 	return 0;
