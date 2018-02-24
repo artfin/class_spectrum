@@ -62,7 +62,7 @@ public:
 	void copy_into_fourier_array( void )
 	{
 		double * start_pos = in + (MaxTrajectoryLength - 2 * physical_correlation.size()) / 2;
-		double * center = in + MaxTrajectoryLength / 2 + 1;
+		double * center = in + MaxTrajectoryLength / 2; 
 
 		std::reverse_copy( physical_correlation.begin(), physical_correlation.end(), start_pos );
 		std::copy( physical_correlation.begin(), physical_correlation.end(), center );

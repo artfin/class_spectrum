@@ -354,6 +354,14 @@ void slave_code( int world_rank )
 		merge_vectors( dipy, dipy_forward, dipy_backward );
 		merge_vectors( dipz, dipz_forward, dipz_backward );	
 
+		ofstream dip_file( "dipole.txt" );
+		for ( size_t k = 0; k < dipx.size(); k++ )
+		{
+			dip_file << k << " " << dipx[k] << " " << dipy[k] << " " << dipz[k] << endl;
+		}
+		dip_file.close();
+
+
 		int npoints = dipz.size();
 		correlationFT.calculate_physical_correlation( dipx, dipy, dipz, initial_dip );		
 		dipx.clear();
@@ -361,13 +369,17 @@ void slave_code( int world_rank )
 		dipz.clear();
 
 		correlationFT.copy_into_fourier_array( );
+		ofstream fourier_in( "fourier_in.txt" );
+		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+			fourier_in << correlationFT.get_in()[k] << endl;
+		fourier_in.close();
 
 		correlationFT.do_fourier( );
 
-		ofstream file( "fourier_out.txt" );
-		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-			file << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
-		file.close();
+		ofstream fourier_out( "fourier_out.txt" );
+		for ( size_t k = 0; k < (parameters.MaxTrajectoryLength + 1)/2; k++ )
+			fourier_out << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
+		fourier_out.close();
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
