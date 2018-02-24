@@ -63,7 +63,7 @@ int main()
 	vector<string> names { "R_pot2", "theta_pot2", "pR_pot2", "pT_pot2" };
 	generator.allocate_histograms( names );	
 
-	const int chain_length = 1e6;
+	const int chain_length = 1e5;
 
 	VectorXd p;
 

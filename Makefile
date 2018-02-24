@@ -67,6 +67,14 @@ full_mcmc_he_ar: $(gear_diatom_obj) $(full_mcmc_he_ar_obj) $(full_mcmc_he_ar_obj
 	@echo " (FULL_MCMC_HE_AR) object files: " $^
 	@$(MPICCXX) $(CXXFLAGS) $(st_libs) $(ld_libs) $^ -o $@
 
+physical_correlation_src := ar_he_pes_derivative.cpp ar_he_dip_buryak_fit.cpp matrix_he_ar.cpp fft.cpp parameters.cpp mcmc_generator.cpp file.cpp ar_he_pes.cpp
+physical_correlation_obj := $(addprefix $(BUILDDIR), $(patsubst %.cpp, %.o, $(physical_correlation_src)))
+physical_correlation_srcx := spectrum_info.cc physical_correlation.cc trajectory.cc
+physical_correlation_objx := $(addprefix $(BUILDDIR), $(patsubst %.cc, %.oo, $(physical_correlation_srcx)))
+physical_correlation: $(gear_diatom_obj) $(physical_correlation_obj) $(physical_correlation_objx) 
+	@echo " (PHYSICAL CORRELATION) object files: " $^
+	@$(MPICCXX) $(CXXFLAGS) $(st_libs) $(ld_libs) $^ -o $@
+
 #########################################################################
 
 #########################################################################

@@ -191,13 +191,14 @@ VectorXd MCMC_generator::generate_free_state_point( function<double(VectorXd)> h
 						//std::cout << "xnew(" << i << ") = " << xnew(i) << "; limits[i].first: " << plimits.limits[i].lb << ": limits[i].second: " << plimits.limits[i].ub << std::endl;
 					}
 				}
+
+				if ( lies_inside_limits )
+				{
+					x = xnew;
+					moves++;
+				}
 			}
 			
-			if ( lies_inside_limits )
-			{
-				x = xnew;
-				moves++;
-			}
 		}
 	}
 	

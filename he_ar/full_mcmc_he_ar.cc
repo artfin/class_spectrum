@@ -139,7 +139,7 @@ void master_code( int world_size )
 								->add_limit(3, -250.0, 250.0);
 
 	// allocating histograms to store variables
-	generator.set_histogram_limits()->add_limit(0, 0.0, 40.0)
+	generator.set_histogram_limits()->add_limit(0, 4.0, 40.0)
 		   							->add_limit(1, 0.0, 2 * M_PI)	
 									->add_limit(2, -50.0, 50.0)
 								    ->add_limit(3, -250.0, 250.0);

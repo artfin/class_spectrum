@@ -57,7 +57,14 @@ public:
 	int report_trajectory_status( void );
 
 	void run_trajectory( dglsysfnk syst );
-	
+
+	std::vector<double> get_initial_dip( void )
+	{
+		std::vector<double> res( 3 );
+		transform_dipole( res, y0[0], y0[2] );
+	  	return res;	
+	}
+
 	std::vector<double> & get_dipx( void ) { return dipx; }
 	std::vector<double> & get_dipy( void ) { return dipy; }
 	std::vector<double> & get_dipz( void ) { return dipz; }	
@@ -68,7 +75,7 @@ public:
 private:
 	Parameters parameters;
 
-	REAL *y0 = 0; // pointer to [0..n-1]-vecotor; initial value
+	REAL *y0 = 0; // pointer to [0..n-1]-vector; initial value
 	REAL *y0_copy = 0; // copy of initial condition
 
 	int N; 
