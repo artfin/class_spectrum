@@ -16,9 +16,15 @@ public:
 
 		in = (double*) fftw_malloc( sizeof(double) * MaxTrajectoryLength );
 		out = (fftw_complex*) fftw_malloc( sizeof(fftw_complex) * outlen );
+		for ( size_t k = 0; k < outlen; k++ )
+		{
+			out[k][0] = 0.0;
+			out[k][1] = 0.0;
+		}
+		
 
 		p = fftw_plan_dft_r2c_1d( MaxTrajectoryLength, in, out, FFTW_ESTIMATE );
-
+		
 		zero_out_input();
 	}
 
@@ -47,6 +53,10 @@ public:
 	{
 		for ( size_t i = 0; i < MaxTrajectoryLength; i++ )
 			in[i] = 0.0;
+
+		physical_correlation.clear();
+		//cout << "physical_correlation.size(): " << physical_correlation.size() << endl;
+		//cout << "physical_correlation.capacity(): " << physical_correlation.capacity() << endl;
 	}
 
 	void copy_into_fourier_array( void )
@@ -80,6 +90,7 @@ public:
 	}
 
 	double * get_in() const { return in; }
+	fftw_complex * get_out() const { return out; }
 
 private:
 	int MaxTrajectoryLength;

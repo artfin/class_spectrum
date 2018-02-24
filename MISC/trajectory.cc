@@ -4,6 +4,7 @@ bool Trajectory::receive_initial_conditions( void )
 {
 	MPI_Status status;
 	MPI_Recv( y0, parameters.DIM, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+	std::cout << "Received initial conditions" << std::endl;
 
 	if ( status.MPI_TAG == tags::EXIT_TAG )
 	{
@@ -86,7 +87,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 
 	REAL t0 =  0; 
 	REAL h = 0.1; // initial, final step size
-	REAL xend = parameters.sampling_time; // right edge of integration interval
+	REAL xend = 1e-10; // right edge of integration interval
 
 	long fmax = 1e9; // maximum number of calls of right side in gear4()
 	long aufrufe; // actual number of function calls
@@ -94,7 +95,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 
 	std::vector<double> temp( 3 );	
 
-	int counter = 0;
+	int counter = 1;
 	while( y0[0] < parameters.RDIST )
 	{
 		if ( counter == parameters.MaxTrajectoryLength / 2 )
@@ -111,6 +112,11 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			break;
 		}
 
+		if ( counter % 1000 == 0 )
+		{
+			cout << "..." << endl; 
+		}
+
 		std::vector<double> coords{ t0, y0[0], y0[1], y0[2], y0[3] };
 		trajectory.push_back( coords );
 
@@ -119,7 +125,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 		dipy.push_back( temp[1] );
 		dipz.push_back( temp[2] );		
 
-		xend = parameters.sampling_time * (counter + 2);
+		xend = parameters.sampling_time * counter; 
 		aufrufe = 0;
 
 		counter++;

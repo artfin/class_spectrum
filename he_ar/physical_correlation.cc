@@ -168,7 +168,16 @@ void master_code( int world_size )
 	
 	double * correlation_total = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
 	double * correlation_package = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
-	
+
+	double * correlationFT_package = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
+	double * correlationFT_total = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
+
+	for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+	{
+		correlation_total[k] = 0.0;
+		correlationFT_total[k] = 0.0;
+	}
+
 	while( true )
 	{
 		if ( is_finished )	
@@ -203,13 +212,22 @@ void master_code( int world_size )
 	
 		//if ( status.MPI_TAG == tags::TRAJECTORY_FINISHED_TAG )
 		//	cout << "(master) Trajectory is not cut!" << endl;
-		
-		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
-		received++;
-		cout << "(master) Received: " << received << endl;
+	
+		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+		{
+			correlation_package[k] = 0.0;
+			correlationFT_package[k] = 0.0;
+		}
 
+		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
 		for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
 			correlation_total[i] += correlation_package[i];
+
+		MPI_Recv( &correlationFT_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+			correlationFT_total[k] += correlationFT_package[k];
+
+		received++;
 
 		if ( received == parameters.NPOINTS )
 		{
@@ -218,9 +236,13 @@ void master_code( int world_size )
 			ofstream file( "equilibrium_correlation.txt" );
 			for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 				file << correlation_total[k] << endl;
-
 			file.close();
-		
+	
+			ofstream fileFT( "equilibrium_correlationFT.txt" );
+			for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+				fileFT << correlationFT_total[k] << endl;
+			fileFT.close();
+
 			is_finished = true;
 		}
 
@@ -238,6 +260,9 @@ void master_code( int world_size )
 
 	fftw_free( correlation_total );
 	fftw_free( correlation_package );
+
+	fftw_free( correlationFT_package );
+	fftw_free( correlationFT_total );
 }
 
 void merge_vectors( vector<double> & merged, vector<double> & forward, vector<double> & backward )
@@ -289,6 +314,8 @@ void slave_code( int world_rank )
 	vector<double> dipx, dipx_forward, dipx_backward;
 	vector<double> dipy, dipy_forward, dipy_backward;
 	vector<double> dipz, dipz_forward, dipz_backward;
+	
+	double * correlationFT_real = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
 
 	while ( true )
 	{
@@ -332,14 +359,28 @@ void slave_code( int world_rank )
 		dipx.clear();
 		dipy.clear();
 		dipz.clear();
-	
+
 		correlationFT.copy_into_fourier_array( );
-		// correlationFT.do_fourier( );
-		
+
+		correlationFT.do_fourier( );
+
+		ofstream file( "fourier_out.txt" );
+		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+			file << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
+		file.close();
+
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
-		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
+		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );	
+		correlationFT.zero_out_input();
+
+		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
+			correlationFT_real[k] = correlationFT.get_out()[k][0];
+
+		MPI_Send( &correlationFT_real[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
 	}
+
+	fftw_free( correlationFT_real );
 }
 
 int main( int argc, char* argv[] )
