@@ -38,8 +38,6 @@ public:
 
 	~Trajectory( )
 	{
-		std::cout << "(trajectory) destructor" << std::endl;
-
 		vmfree( vmblock );
 	}
 

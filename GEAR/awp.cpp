@@ -20,11 +20,11 @@
 * REF.: "Numerical Algorithms with C, By Gisela Engeln-Muellges        *
 *        and Frank Uhlig, Springer-Verlag, 1996" [BIBLI 11].           *
 ***********************************************************************/
-#include "basis.hpp"      /*  for  MACH_EPS, FABS, max, SQRT, REAL,     */
+#include <basis.hpp>      /*  for  MACH_EPS, FABS, max, SQRT, REAL,     */
                         /*       dglsysfnk, POW, min, FALSE, TRUE,    */
                         /*       boolean, norm_max, ZERO, FOUR, SIX,  */
                         /*       THREE, ONE, TWO, TEN, FIVE, NULL     */
-#include "vmblock.hpp"    /*  for  vmalloc, vmcomplete, vmfree, vminit, */
+#include <vmblock.hpp>    /*  for  vmalloc, vmcomplete, vmfree, vminit, */
                         /*       VEKTOR                               */
 #include "awp.hpp"        /*  for  awp, fehler_t, awp_fehlertext        */
 
@@ -515,8 +515,7 @@ int awp                /* 1st order DESs with autom. step size control*/
   vmblock = vminit();                 /* initialize storage           */
   y_bad  = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
   y_good = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
-  yhilf  = (REAL *)vmalloc(vmblock, VEKTOR, n+1, 0);
-  yhilf[n] = y[n];
+  yhilf  = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
   k1     = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
   k2     = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
   k3     = (REAL *)vmalloc(vmblock, VEKTOR, n, 0);
@@ -686,3 +685,4 @@ char *awp_fehlertext   /* determine error code and class              */
 }
 
 /* -------------------------- END  awp.cpp -------------------------- */
+

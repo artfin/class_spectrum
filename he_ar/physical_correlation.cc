@@ -165,17 +165,23 @@ void master_code( int world_size )
 	}
 
 	clock_t start = clock();
-	
-	double * correlation_total = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
-	double * correlation_package = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
 
-	double * correlationFT_package = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
-	double * correlationFT_total = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
+	double * correlation_total = new double [parameters.MaxTrajectoryLength];
+	double * correlation_package = new double [parameters.MaxTrajectoryLength];
+
+	double * specfunc_package = new double [FREQ_SIZE];
+	double * specfunc_total = new double [FREQ_SIZE];
+		
+	double * spectrum_package = new double [FREQ_SIZE];
+	double * spectrum_total = new double [FREQ_SIZE];
 
 	for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-	{
 		correlation_total[k] = 0.0;
-		correlationFT_total[k] = 0.0;
+
+	for ( size_t k = 0; k < FREQ_SIZE; k++ )
+	{
+		specfunc_total[k] = 0.0;
+		spectrum_total[k] = 0.0;
 	}
 
 	while( true )
@@ -195,7 +201,7 @@ void master_code( int world_size )
 		if ( status.MPI_TAG == tags::TRAJECTORY_CUT_TAG )
 		{
 			cout << "(master) Received cutting trajectory tag!" << endl;
-			if ( sent < parameters.NPOINTS )
+			if ( sent <= parameters.NPOINTS )
 			{
 				p = generator.generate_free_state_point( hamiltonian );
 				generator.show_current_point();
@@ -203,7 +209,6 @@ void master_code( int world_size )
 				cout << "(master) Sending new point!" << endl;
 				MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 				MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
-				sent++;
 				cout << "(master) Sent new point" << endl;
 
 				continue;
@@ -214,34 +219,68 @@ void master_code( int world_size )
 		//	cout << "(master) Trajectory is not cut!" << endl;
 	
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-		{
 			correlation_package[k] = 0.0;
-			correlationFT_package[k] = 0.0;
+
+		for ( size_t k = 0; k < FREQ_SIZE; k++ )
+		{
+			specfunc_package[k] = 0.0;
+			spectrum_package[k] = 0.0;
 		}
 
-		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status ); 
-		for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
-			correlation_total[i] += correlation_package[i];
+		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+		
+		MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 
-		MPI_Recv( &correlationFT_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-			correlationFT_total[k] += correlationFT_package[k];
+		MPI_Recv( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+	   	
+		if ( received > 1 )
+		{
+			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
+			{
+				correlation_total[i] += correlation_package[i];
+				correlation_total[i] *= (double) (received - 1) / received;
+			}
+
+			for ( size_t i = 0; i < FREQ_SIZE; i++ )
+			{
+				specfunc_total[i] += specfunc_package[i];
+			   	specfunc_total[i] *= (double) (received - 1) / received;
+
+				spectrum_total[i] += spectrum_package[i];
+				spectrum_total[i] *= (double) (received - 1) / received;	
+			}
+		}
+		else
+		{
+			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
+				correlation_total[i] += correlation_package[i];
+			
+			for ( size_t i= 0; i < FREQ_SIZE; i++ )
+			{
+				specfunc_total[i] += specfunc_package[i];
+				spectrum_total[i] += spectrum_package[i];
+			}
+		}
 
 		received++;
+		cout << "(master) after all MPI_Recv; received = " << received << endl;
 
 		if ( received == parameters.NPOINTS )
 		{
-			cout << "Saving equilibrium correlation function..." << endl;
-
 			ofstream file( "equilibrium_correlation.txt" );
 			for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 				file << correlation_total[k] << endl;
 			file.close();
 	
-			ofstream fileFT( "equilibrium_correlationFT.txt" );
-			for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-				fileFT << correlationFT_total[k] << endl;
-			fileFT.close();
+			ofstream specfunc_file( "specfunc_total.txt" );
+			for ( size_t k = 0; k < FREQ_SIZE; k++ )
+				specfunc_file << freqs[k] << " " << specfunc_total[k] << endl;
+			specfunc_file.close();
+
+			ofstream spectrum_file( "spectrum_total.txt" );
+			for ( size_t k = 0; k < FREQ_SIZE; k++ )
+				spectrum_file << freqs[k] << " " << spectrum_total[k] << endl;
+			spectrum_file.close();
 
 			is_finished = true;
 		}
@@ -258,11 +297,14 @@ void master_code( int world_size )
 		}
 	}
 
-	fftw_free( correlation_total );
-	fftw_free( correlation_package );
+	delete [] correlation_total;
+	delete [] correlation_package;
 
-	fftw_free( correlationFT_package );
-	fftw_free( correlationFT_total );
+	delete [] specfunc_package;
+	delete [] specfunc_total;
+
+	delete [] spectrum_package;
+	delete [] spectrum_total;
 }
 
 void merge_vectors( vector<double> & merged, vector<double> & forward, vector<double> & backward )
@@ -308,14 +350,13 @@ void slave_code( int world_rank )
 
 	CorrelationFourierTransform correlationFT( parameters.MaxTrajectoryLength );
 
-	stringstream ss;
-
 	vector<double> initial_dip;
-	vector<double> dipx, dipx_forward, dipx_backward;
-	vector<double> dipy, dipy_forward, dipy_backward;
-	vector<double> dipz, dipz_forward, dipz_backward;
-	
-	double * correlationFT_real = (double*) fftw_malloc( sizeof(double) * parameters.MaxTrajectoryLength );
+	vector<double> dipx; //, dipx_forward, dipx_backward;
+	vector<double> dipy; //, dipy_forward, dipy_backward;
+	vector<double> dipz; //, dipz_forward, dipz_backward;
+
+	double * specfunc_package = new double [FREQ_SIZE];
+	double * spectrum_package = new double [FREQ_SIZE];
 
 	while ( true )
 	{
@@ -325,42 +366,26 @@ void slave_code( int world_rank )
 		clock_t start = clock();
 
 		exit_status = trajectory.receive_initial_conditions( );
-		if ( exit_status ) 
+		if ( exit_status )
+		{	
+			cout << "(" << world_rank << ") exit message is received!" << endl;
 			break;
+		}
 
 		// getting initial vector of dipole moment
 		initial_dip = trajectory.get_initial_dip();
 
-		dipx_forward = trajectory.get_dipx();
-		dipy_forward = trajectory.get_dipy();
-		dipz_forward = trajectory.get_dipz();
-		trajectory.dump_dipoles( );
-
-		trajectory.reverse_initial_conditions( );
-
 		trajectory.run_trajectory( syst );
-	
-		dipx_backward = trajectory.get_dipx();
-		dipy_backward = trajectory.get_dipy();
-		dipz_backward = trajectory.get_dipz();
-		trajectory.dump_dipoles();
+
+		dipx = trajectory.get_dipx();
+		dipy = trajectory.get_dipy();
+		dipz = trajectory.get_dipz();
+		trajectory.dump_dipoles( );
 
 		cut_trajectory = trajectory.report_trajectory_status( );
 			
 		if ( cut_trajectory == 1 )
 			continue;
-	
-		merge_vectors( dipx, dipx_forward, dipx_backward );
-		merge_vectors( dipy, dipy_forward, dipy_backward );
-		merge_vectors( dipz, dipz_forward, dipz_backward );	
-
-		ofstream dip_file( "dipole.txt" );
-		for ( size_t k = 0; k < dipx.size(); k++ )
-		{
-			dip_file << k << " " << dipx[k] << " " << dipy[k] << " " << dipz[k] << endl;
-		}
-		dip_file.close();
-
 
 		int npoints = dipz.size();
 		correlationFT.calculate_physical_correlation( dipx, dipy, dipz, initial_dip );		
@@ -369,30 +394,46 @@ void slave_code( int world_rank )
 		dipz.clear();
 
 		correlationFT.copy_into_fourier_array( );
+		/*
 		ofstream fourier_in( "fourier_in.txt" );
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 			fourier_in << correlationFT.get_in()[k] << endl;
 		fourier_in.close();
+		*/
 
 		correlationFT.do_fourier( );
 
+		/*
 		ofstream fourier_out( "fourier_out.txt" );
 		for ( size_t k = 0; k < (parameters.MaxTrajectoryLength + 1)/2; k++ )
 			fourier_out << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
 		fourier_out.close();
+		*/
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
 		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );	
 		correlationFT.zero_out_input();
+		cout << "(slave) correlation package is sent!" << endl;
 
-		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-			correlationFT_real[k] = correlationFT.get_out()[k][0];
+		double omega = 0.0;
+		int n = 0;
+		for ( size_t k = 0; k < 2 * FREQ_SIZE; k += 2 )
+		{
+			n = k / 2;
+			specfunc_package[n] = correlationFT.get_out()[k][0] * SPECFUNC_POWERS_OF_TEN * specfunc_coeff;
+			//cout << "specfunc_package[" << k << "] = " << specfunc_package[k] << endl;
+			omega = 2.0 * M_PI * constants::LIGHTSPEED_CM * freqs[n];
 
-		MPI_Send( &correlationFT_real[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
+			spectrum_package[n] = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega * (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT)) * specfunc_package[n] / SPECFUNC_POWERS_OF_TEN / specfunc_coeff;
+		}
+
+		MPI_Send( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
+		MPI_Send( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
 	}
 
-	fftw_free( correlationFT_real );
+	free( specfunc_package );
+	free( spectrum_package );
 }
 
 int main( int argc, char* argv[] )

@@ -3,13 +3,12 @@ $conditions
 $end
 
 $trajectory
-	% 20 Angstrom
-	RDIST = 20.0 
+	RDIST = 25.0 
 
 	% 5*10**(-16) s
 	sampling_time = 20.67068666828068
 
-	MaxTrajectoryLength = 262144 
+	MaxTrajectoryLength = 131072 
 	FREQ_MAX = 700.0
 $end
 
@@ -29,7 +28,7 @@ $mcparameters
 	initial_point = 10.0 0.01 0.1 1.0 
 	alpha = 2.0 
 	subchain_length = 10
-	NPOINTS = 100 
+	NPOINTS = 500 
 $end
 
 $files
