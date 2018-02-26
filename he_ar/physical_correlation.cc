@@ -351,9 +351,9 @@ void slave_code( int world_rank )
 	CorrelationFourierTransform correlationFT( parameters.MaxTrajectoryLength );
 
 	vector<double> initial_dip;
-	vector<double> dipx; //, dipx_forward, dipx_backward;
-	vector<double> dipy; //, dipy_forward, dipy_backward;
-	vector<double> dipz; //, dipz_forward, dipz_backward;
+	vector<double> dipx, dipx_forward, dipx_backward;
+	vector<double> dipy, dipy_forward, dipy_backward;
+	vector<double> dipz, dipz_forward, dipz_backward;
 
 	double * specfunc_package = new double [FREQ_SIZE];
 	double * spectrum_package = new double [FREQ_SIZE];
@@ -375,40 +375,95 @@ void slave_code( int world_rank )
 		// getting initial vector of dipole moment
 		initial_dip = trajectory.get_initial_dip();
 
+		// running forward trajectory
 		trajectory.run_trajectory( syst );
 
-		dipx = trajectory.get_dipx();
-		dipy = trajectory.get_dipy();
-		dipz = trajectory.get_dipz();
+		dipx_forward = trajectory.get_dipx();
+		dipy_forward = trajectory.get_dipy();
+		dipz_forward = trajectory.get_dipz();
 		trajectory.dump_dipoles( );
+
+		// reversing impulses in initial point
+		trajectory.reverse_initial_conditions( );
+		
+		// running backward trajectory
+		trajectory.run_trajectory( syst );
+
+		dipx_backward = trajectory.get_dipx();
+		dipy_backward = trajectory.get_dipy();
+		dipz_backward = trajectory.get_dipz();
+		trajectory.dump_dipoles( );
+		
+		reverse( dipx_backward.begin(), dipx_backward.end() );
+		reverse( dipy_backward.begin(), dipy_backward.end() );
+		reverse( dipz_backward.begin(), dipz_backward.end() );
 
 		cut_trajectory = trajectory.report_trajectory_status( );
 			
 		if ( cut_trajectory == 1 )
 			continue;
 
+		size_t min_dip_len = min( dipx_backward.size(), dipx_forward.size() );
+		for ( size_t k = 0; k < min_dip_len; k++ )
+		{
+			dipx.push_back( 0.5 * (dipx_backward[k] + dipx_forward[k]) );
+			dipy.push_back( 0.5 * (dipy_backward[k] + dipy_forward[k]) );
+			dipz.push_back( 0.5 * (dipz_backward[k] + dipz_forward[k]) );
+		}
+		if ( dipx_backward.size() > dipx_forward.size() )
+		{
+			for ( size_t k = min_dip_len; k < dipx_backward.size(); k++ )
+			{
+				dipx.push_back( 0.5 * dipx_backward[k] );
+				dipy.push_back( 0.5 * dipy_backward[k] );
+				dipz.push_back( 0.5 * dipz_backward[k] );
+			}
+		}
+		else
+		{
+			for ( size_t k = min_dip_len; k < dipx_forward.size(); k++ )
+			{
+				dipx.push_back( 0.5 * dipx_forward[k] );
+				dipy.push_back( 0.5 * dipy_forward[k] );
+				dipz.push_back( 0.5 * dipz_forward[k] );
+			}
+		}
+		dipx_backward.clear();
+		dipy_backward.clear();
+		dipz_backward.clear();
+		dipx_forward.clear();
+		dipy_forward.clear();
+		dipz_forward.clear();
+
+		/*	
+		ofstream dip_total_file( "dip_total.txt" );
+		for ( size_t k = 0; k < dipx.size(); k++ )
+		{
+			dip_total_file << dipx[k] << " " << dipy[k] << " " << dipz[k] << endl;
+		}
+		dip_total_file.close();
+		*/
+
 		int npoints = dipz.size();
 		correlationFT.calculate_physical_correlation( dipx, dipy, dipz, initial_dip );		
+		
 		dipx.clear();
 		dipy.clear();
 		dipz.clear();
 
 		correlationFT.copy_into_fourier_array( );
-		/*
+
 		ofstream fourier_in( "fourier_in.txt" );
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 			fourier_in << correlationFT.get_in()[k] << endl;
 		fourier_in.close();
-		*/
 
 		correlationFT.do_fourier( );
 
-		/*
 		ofstream fourier_out( "fourier_out.txt" );
 		for ( size_t k = 0; k < (parameters.MaxTrajectoryLength + 1)/2; k++ )
 			fourier_out << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
 		fourier_out.close();
-		*/
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 
