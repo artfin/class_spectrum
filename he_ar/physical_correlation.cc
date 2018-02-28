@@ -394,6 +394,7 @@ void slave_code( int world_rank )
 		dipz.clear();
 
 		correlationFT.copy_into_fourier_array( );
+
 		/*
 		ofstream fourier_in( "fourier_in.txt" );
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
@@ -405,27 +406,27 @@ void slave_code( int world_rank )
 
 		/*
 		ofstream fourier_out( "fourier_out.txt" );
-		for ( size_t k = 0; k < (parameters.MaxTrajectoryLength + 1)/2; k++ )
-			fourier_out << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
+		for ( size_t k = 0; k < 10000; k++ )
+			fourier_out << 
+				correlationFT.get_out()[k][0] * correlationFT.get_out()[k][0] + correlationFT.get_out()[k][1] * correlationFT.get_out()[k][1] 
+			<< endl;
 		fourier_out.close();
-		*/
-
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << npoints << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
+		*/
 
 		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );	
 		correlationFT.zero_out_input();
 		cout << "(slave) correlation package is sent!" << endl;
 
 		double omega = 0.0;
-		int n = 0;
-		for ( size_t k = 0; k < 2 * FREQ_SIZE; k += 2 )
+		double correlation_squared = 0.0;
+		for ( size_t k = 0; k < FREQ_SIZE; k++ )
 		{
-			n = k / 2;
-			specfunc_package[n] = correlationFT.get_out()[k][0] * SPECFUNC_POWERS_OF_TEN * specfunc_coeff;
-			//cout << "specfunc_package[" << k << "] = " << specfunc_package[k] << endl;
-			omega = 2.0 * M_PI * constants::LIGHTSPEED_CM * freqs[n];
+			correlation_squared = correlationFT.get_out()[k][0] * correlationFT.get_out()[k][0] + correlationFT.get_out()[k][1] * correlationFT.get_out()[k][1];
+			specfunc_package[k] = correlation_squared * SPECFUNC_POWERS_OF_TEN * specfunc_coeff;
+			omega = 2.0 * M_PI * constants::LIGHTSPEED_CM * freqs[k];
 
-			spectrum_package[n] = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega * (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT)) * specfunc_package[n] / SPECFUNC_POWERS_OF_TEN / specfunc_coeff;
+			spectrum_package[k] = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega * (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT)) * specfunc_package[k] / SPECFUNC_POWERS_OF_TEN / specfunc_coeff;
 		}
 
 		MPI_Send( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );

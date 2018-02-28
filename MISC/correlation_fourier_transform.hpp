@@ -59,14 +59,23 @@ public:
 		//cout << "physical_correlation.capacity(): " << physical_correlation.capacity() << endl;
 	}
 
+	// create an array of type:
+	// [0, ...0, C(delta_t * N), ... , C(delta_t), C(0), C(delta_t), ..., C(delta_t * N), 0, ... 0]
+	//void copy_into_fourier_array( void )
+	//{
+		//double * start_pos = in + (MaxTrajectoryLength - 2 * physical_correlation.size()) / 2 + 1;
+		//double * center = in + MaxTrajectoryLength / 2; 
+
+		//std::reverse_copy( physical_correlation.begin(), physical_correlation.end(), start_pos );
+		//std::copy( physical_correlation.begin(), physical_correlation.end(), center );
+	//}	
+
+	// create an array of type:
+	// [C(0), C(delta_t), ..., C(delta_t * N), 0 ... 0]
 	void copy_into_fourier_array( void )
 	{
-		double * start_pos = in + (MaxTrajectoryLength - 2 * physical_correlation.size()) / 2 + 1;
-		double * center = in + MaxTrajectoryLength / 2; 
-
-		std::reverse_copy( physical_correlation.begin(), physical_correlation.end(), start_pos );
-		std::copy( physical_correlation.begin(), physical_correlation.end(), center );
-	}	
+		std::copy( physical_correlation.begin(), physical_correlation.end(), in );
+	}
 
 	void do_fourier( void )
 	{

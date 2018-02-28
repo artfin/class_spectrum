@@ -3,7 +3,7 @@ $conditions
 $end
 
 $trajectory
-	RDIST = 25.0 
+	RDIST = 40.0 
 
 	% 5*10**(-16) s
 	sampling_time = 20.67068666828068
@@ -28,7 +28,7 @@ $mcparameters
 	initial_point = 8.0 0.01 0.1 1.0 
 	alpha = 2.0 
 	subchain_length = 10
-	NPOINTS = 5000 
+	NPOINTS = 100 
 $end
 
 $files
