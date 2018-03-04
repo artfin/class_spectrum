@@ -41,7 +41,7 @@ public:
 
 	vector<gsl_histogram*> histograms;
 	vector<string> names;
-	const int NBINS = 500;
+	const int NBINS = 100;
 	void gsl_histogram_normalize( gsl_histogram* h );
 	void save_histogram( gsl_histogram* h, const string& filename );
 

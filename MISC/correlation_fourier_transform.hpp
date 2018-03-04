@@ -37,16 +37,26 @@ public:
 
 	void calculate_physical_correlation( vector<double> & dipx, vector<double> & dipy, vector<double> & dipz, vector<double> & initial_dip )
 	{
-		assert( dipx.size() == dipy.size() );
-		assert( dipx.size() == dipz.size() );
-		assert( dipy.size() == dipz.size() );
+		int size = dipx.size();
+		assert( dipy.size() == size ); 
+		assert( dipz.size() == size ); 
 
-		for ( size_t k = 0; k < dipx.size(); k++ )
-		{
-			physical_correlation.push_back(
-				dipx[k] * initial_dip[0] + dipy[k] * initial_dip[1] + dipz[k] * initial_dip[2]
-			);
-		}
+		physical_correlation.reserve( size );
+
+		for ( size_t k = 0; k < size; k++ ) 
+			physical_correlation.push_back( dipx[k] * initial_dip[0] + 
+									  		dipy[k] * initial_dip[1] + 
+									  		dipz[k] * initial_dip[2] );
+	}
+	
+	void symmetrize( ) 
+	{
+		int size = physical_correlation.size();
+
+		for ( size_t k = 0; k < size / 2; k++ )
+			physical_correlation[k] = 0.5 * ( physical_correlation[k] + physical_correlation[ size - k - 1] );
+		for ( size_t k = size / 2; k < size; k++ )
+			physical_correlation[k] = physical_correlation[size - k - 1];
 	}
 
 	void zero_out_input( void )
@@ -55,18 +65,22 @@ public:
 			in[i] = 0.0;
 
 		physical_correlation.clear();
-		//cout << "physical_correlation.size(): " << physical_correlation.size() << endl;
-		//cout << "physical_correlation.capacity(): " << physical_correlation.capacity() << endl;
 	}
+
+	//void copy_into_fourier_array( void )
+	//{
+		//double * start_pos = in + (MaxTrajectoryLength - 2 * physical_correlation.size()) / 2 + 1;
+		//double * center = in + MaxTrajectoryLength / 2; 
+
+		//std::reverse_copy( physical_correlation.begin(), physical_correlation.end(), start_pos );
+		//std::copy( physical_correlation.begin(), physical_correlation.end(), center );
+	//}	
 
 	void copy_into_fourier_array( void )
 	{
-		double * start_pos = in + (MaxTrajectoryLength - 2 * physical_correlation.size()) / 2 + 1;
-		double * center = in + MaxTrajectoryLength / 2; 
-
-		std::reverse_copy( physical_correlation.begin(), physical_correlation.end(), start_pos );
-		std::copy( physical_correlation.begin(), physical_correlation.end(), center );
-	}	
+		int position = (MaxTrajectoryLength - physical_correlation.size()) / 2;
+		std::copy( physical_correlation.begin(), physical_correlation.end(), in + position ); 
+	}
 
 	void do_fourier( void )
 	{
@@ -91,11 +105,12 @@ public:
 
 	double * get_in() const { return in; }
 	fftw_complex * get_out() const { return out; }
+	
+	vector<double> physical_correlation;
 
 private:
 	int MaxTrajectoryLength;
 
-	vector<double> physical_correlation;
 
 	double * in;
 	fftw_complex * out;

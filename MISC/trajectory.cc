@@ -117,8 +117,10 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			cout << "..." << endl; 
 		}
 
+		/*
 		std::vector<double> coords{ t0, y0[0], y0[1], y0[2], y0[3] };
 		trajectory.push_back( coords );
+		*/
 
 		transform_dipole( temp, y0[0], y0[2] );
 		dipx.push_back( temp[0] );
