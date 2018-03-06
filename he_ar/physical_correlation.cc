@@ -173,20 +173,24 @@ void master_code( int world_size )
 	double * correlation_total = new double [parameters.MaxTrajectoryLength];
 	double * correlation_package = new double [parameters.MaxTrajectoryLength];
 
+	/*
 	double * specfunc_package = new double [FREQ_SIZE];
 	double * specfunc_total = new double [FREQ_SIZE];
 		
 	double * spectrum_package = new double [FREQ_SIZE];
 	double * spectrum_total = new double [FREQ_SIZE];
+	*/
 
 	for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 		correlation_total[k] = 0.0;
 
+	/*
 	for ( size_t k = 0; k < FREQ_SIZE; k++ )
 	{
 		specfunc_total[k] = 0.0;
 		spectrum_total[k] = 0.0;
 	}
+	*/
 
 	while( true )
 	{
@@ -224,17 +228,18 @@ void master_code( int world_size )
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 			correlation_package[k] = 0.0;
 
+		/*
 		for ( size_t k = 0; k < FREQ_SIZE; k++ )
 		{
 			specfunc_package[k] = 0.0;
 			spectrum_package[k] = 0.0;
 		}
+		*/
 
 		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 	
-		MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-
-		MPI_Recv( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+		//MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+		//MPI_Recv( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 	   	
 		if ( received > 1 )
 		{
@@ -245,6 +250,7 @@ void master_code( int world_size )
 				correlation_total[i] *= (double) (received - 1) / received;
 			}
 			
+			/*
 			for ( size_t i = 0; i < FREQ_SIZE; i++ )
 			{
 				specfunc_total[i] += specfunc_package[i];
@@ -253,17 +259,20 @@ void master_code( int world_size )
 				spectrum_total[i] += spectrum_package[i];
 				spectrum_total[i] *= (double) (received - 1) / received;	
 			}
+			*/
 		}
 		else
 		{
 			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
 				correlation_total[i] += correlation_package[i] * constants::ADIPMOMU * constants::ADIPMOMU;
 			
+			/*
 			for ( size_t i= 0; i < FREQ_SIZE; i++ )
 			{
 				specfunc_total[i] += specfunc_package[i];
 				spectrum_total[i] += spectrum_package[i];
 			}
+			*/
 		}
 
 		received++;
@@ -275,7 +284,8 @@ void master_code( int world_size )
 			for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 				file << correlation_total[k] << endl;
 			file.close();
-	
+
+			/*	
 			ofstream specfunc_file( "specfunc_total.txt" );
 			for ( size_t k = 0; k < FREQ_SIZE; k++ )
 				specfunc_file << freqs[k] << " " << specfunc_total[k] << endl;
@@ -285,6 +295,7 @@ void master_code( int world_size )
 			for ( size_t k = 0; k < FREQ_SIZE; k++ )
 				spectrum_file << freqs[k] << " " << spectrum_total[k] << endl;
 			spectrum_file.close();
+			*/
 
 			is_finished = true;
 		}
@@ -306,11 +317,13 @@ void master_code( int world_size )
 	delete [] correlation_total;
 	delete [] correlation_package;
 
+	/*
 	delete [] specfunc_package;
 	delete [] specfunc_total;
 
 	delete [] spectrum_package;
 	delete [] spectrum_total;
+	*/
 }
 
 // использует move semantics или Named Return Value Optimization, до конца не разобрался
@@ -517,10 +530,10 @@ void slave_code( int world_rank )
 		*/
 
 		// Отправляем собранный массив корреляций мастер-процессу
-		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );	
-	
+		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );		
 		correlationFT.zero_out_input();
 
+		/*
 		double omega = 0.0;
 		for ( size_t k = 0; k < FREQ_SIZE; k++ )
 		{
@@ -532,6 +545,7 @@ void slave_code( int world_rank )
 
 		MPI_Send( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
 		MPI_Send( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
+		*/
 	}
 }
 
