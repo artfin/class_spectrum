@@ -4,7 +4,6 @@ bool Trajectory::receive_initial_conditions( void )
 {
 	MPI_Status status;
 	MPI_Recv( y0, parameters.DIM, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-	std::cout << "Received initial conditions" << std::endl;
 
 	if ( status.MPI_TAG == tags::EXIT_TAG )
 	{

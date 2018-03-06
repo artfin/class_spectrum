@@ -231,12 +231,10 @@ void master_code( int world_size )
 		*/
 
 		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-		cout << "(master) CORRELATION PACKAGE RECEIVED!" << endl;		
 	
-		int dist = distance( correlation_package, find_if( correlation_package,  
-																  correlation_package + parameters.MaxTrajectoryLength, 
-																   [](double x) { return x != 0; }));
-		cout << "(master) distance to non-zero element: " << dist << endl;	
+		//int dist = distance( correlation_package, find_if( correlation_package,  
+		//														  correlation_package + parameters.MaxTrajectoryLength, 
+		//														   [](double x) { return x != 0; }));
 
 		//MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 
@@ -263,7 +261,6 @@ void master_code( int world_size )
 		}
 		else
 		{
-			cout << "(master) Adding correlation package to correlation total!" << endl;
 			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
 				correlation_total[i] += correlation_package[i];
 			
@@ -382,7 +379,6 @@ void slave_code( int world_rank )
 
 	while ( true )
 	{
-		cout << "(slave) beginning of the WHILE cycle" << endl;
 		// переменная cut_trajectory играет роль переменной типа bool
 		// ( это сделано для того, чтобы переменная могла быть переслана при помощи MPI_Send, 
 		// там нет встроенного типа MPI_BOOL. )
@@ -510,10 +506,12 @@ void slave_code( int world_rank )
 		// НАДО БЫ ОТКАЗАТЬСЯ ОТ МАССИВОВ dipx, dipy, dipz И СРАЗУ КОПИРОВАТЬ ИЗ BACKWARD, FORWARD
 		// МАССИВОВ В ЭТОТ ПОДГОТОВЛЕННЫЙ МАССИВ. НО СНАЧАЛА РАЗБЕРЕМСЯ С КОЛИЧЕСТВЕННОЙ ПРАВИЛЬНОСТЬЮ РЕЗУЛЬТАТА
 
+		/*
 		ofstream fourier_in( "fourier_in.txt" );
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 			fourier_in << correlationFT.get_in()[k] << endl;
 		fourier_in.close();
+		*/
 
 		// correlationFT.do_fourier( );
 
@@ -524,13 +522,10 @@ void slave_code( int world_rank )
 		fourier_out.close();
 		*/
 
-		cout << "(slave) BEFORE MPI_SEND" << endl;
 		// Отправляем собранный массив корреляций мастер-процессу
 		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );	
-		cout << "(slave) AFTER MPI_SEND" << endl;
 	
 		correlationFT.zero_out_input();
-		cout << "(slave) correlation package is sent!" << endl;
 
 		/*
 		double omega = 0.0;
