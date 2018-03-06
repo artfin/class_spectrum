@@ -148,6 +148,8 @@ void master_code( int world_size )
 	vector<string> names { "R", "theta", "pR", "pT" };
 	generator.allocate_histograms( names );	
 
+	ofstream distribution_points("distribution_points.txt");
+
 	VectorXd p;
 	// sending first trajectory	
 	for ( int i = 1; i < world_size; i++ )
@@ -160,6 +162,8 @@ void master_code( int world_size )
 
 		MPI_Send( &sent, 1, MPI_INT, i, 0, MPI_COMM_WORLD );
 		//cout << "(master) sent number of trajectory" << endl;
+		
+		distribution_points << p[0] << " " << p[1] << " " << p[2] << " " << p[3] << endl;
 
 		sent++;
 	}
@@ -169,22 +173,20 @@ void master_code( int world_size )
 	double * correlation_total = new double [parameters.MaxTrajectoryLength];
 	double * correlation_package = new double [parameters.MaxTrajectoryLength];
 
-	//double * specfunc_package = new double [FREQ_SIZE];
-	//double * specfunc_total = new double [FREQ_SIZE];
+	double * specfunc_package = new double [FREQ_SIZE];
+	double * specfunc_total = new double [FREQ_SIZE];
 		
-	//double * spectrum_package = new double [FREQ_SIZE];
-	//double * spectrum_total = new double [FREQ_SIZE];
+	double * spectrum_package = new double [FREQ_SIZE];
+	double * spectrum_total = new double [FREQ_SIZE];
 
 	for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 		correlation_total[k] = 0.0;
 
-	/*
 	for ( size_t k = 0; k < FREQ_SIZE; k++ )
 	{
 		specfunc_total[k] = 0.0;
 		spectrum_total[k] = 0.0;
 	}
-	*/
 
 	while( true )
 	{
@@ -222,33 +224,27 @@ void master_code( int world_size )
 		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
 			correlation_package[k] = 0.0;
 
-		/*
 		for ( size_t k = 0; k < FREQ_SIZE; k++ )
 		{
 			specfunc_package[k] = 0.0;
 			spectrum_package[k] = 0.0;
 		}
-		*/
 
 		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 	
-		//int dist = distance( correlation_package, find_if( correlation_package,  
-		//														  correlation_package + parameters.MaxTrajectoryLength, 
-		//														   [](double x) { return x != 0; }));
+		MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 
-		//MPI_Recv( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-
-		//MPI_Recv( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
+		MPI_Recv( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
 	   	
 		if ( received > 1 )
 		{
 			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
 			{
-				correlation_total[i] += correlation_package[i];
+				// размерность корреляции дипольного момента -- квадрат диполя
+				correlation_total[i] += correlation_package[i] * constants::ADIPMOMU * constants::ADIPMOMU;
 				correlation_total[i] *= (double) (received - 1) / received;
 			}
 			
-			/*
 			for ( size_t i = 0; i < FREQ_SIZE; i++ )
 			{
 				specfunc_total[i] += specfunc_package[i];
@@ -257,20 +253,17 @@ void master_code( int world_size )
 				spectrum_total[i] += spectrum_package[i];
 				spectrum_total[i] *= (double) (received - 1) / received;	
 			}
-			*/
 		}
 		else
 		{
 			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
-				correlation_total[i] += correlation_package[i];
+				correlation_total[i] += correlation_package[i] * constants::ADIPMOMU * constants::ADIPMOMU;
 			
-			/*
 			for ( size_t i= 0; i < FREQ_SIZE; i++ )
 			{
 				specfunc_total[i] += specfunc_package[i];
 				spectrum_total[i] += spectrum_package[i];
 			}
-			*/
 		}
 
 		received++;
@@ -283,7 +276,6 @@ void master_code( int world_size )
 				file << correlation_total[k] << endl;
 			file.close();
 	
-			/*
 			ofstream specfunc_file( "specfunc_total.txt" );
 			for ( size_t k = 0; k < FREQ_SIZE; k++ )
 				specfunc_file << freqs[k] << " " << specfunc_total[k] << endl;
@@ -293,7 +285,6 @@ void master_code( int world_size )
 			for ( size_t k = 0; k < FREQ_SIZE; k++ )
 				spectrum_file << freqs[k] << " " << spectrum_total[k] << endl;
 			spectrum_file.close();
-			*/
 
 			is_finished = true;
 		}
@@ -305,6 +296,8 @@ void master_code( int world_size )
 
 			MPI_Send( p.data(), parameters.DIM, MPI_DOUBLE, source, 0, MPI_COMM_WORLD );
 			MPI_Send( &sent, 1, MPI_INT, source, 0, MPI_COMM_WORLD );
+		
+			distribution_points << p[0] << " " << p[1] << " " << p[2] << " " << p[3] << endl;
 			
 			sent++;
 		}
@@ -313,11 +306,11 @@ void master_code( int world_size )
 	delete [] correlation_total;
 	delete [] correlation_package;
 
-	//delete [] specfunc_package;
-	//delete [] specfunc_total;
+	delete [] specfunc_package;
+	delete [] specfunc_total;
 
-	//delete [] spectrum_package;
-	//delete [] spectrum_total;
+	delete [] spectrum_package;
+	delete [] spectrum_total;
 }
 
 // использует move semantics или Named Return Value Optimization, до конца не разобрался
@@ -348,7 +341,8 @@ void slave_code( int world_rank )
 	int FREQ_SIZE = freqs.size();
 	double FREQ_STEP = freqs[1] - freqs[0];
 
-	double specfunc_coeff = 1.0/(4.0*M_PI)/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2);
+	//double specfunc_coeff = 1.0/(4.0*M_PI)/constants::EPSILON0 * pow(parameters.sampling_time * constants::ATU, 2)/2.0/M_PI * pow(constants::ADIPMOMU, 2);
+	double specfunc_coeff = 1.0/(4.0*M_PI)/constants::EPSILON0 * pow(constants::ADIPMOMU, 2);
 
 	double spectrum_coeff = 8.0*M_PI*M_PI*M_PI/3.0/constants::PLANCKCONST/constants::LIGHTSPEED * specfunc_coeff * pow(constants::LOSHMIDT_CONSTANT, 2);
 
@@ -374,8 +368,8 @@ void slave_code( int world_rank )
 	vector<double> dipy, dipy_forward, dipy_backward;
 	vector<double> dipz, dipz_forward, dipz_backward;
 
-	//double * specfunc_package = new double [FREQ_SIZE];
-	//double * spectrum_package = new double [FREQ_SIZE];
+	vector<double> specfunc_package(FREQ_SIZE);
+	vector<double> spectrum_package(FREQ_SIZE);
 
 	while ( true )
 	{
@@ -513,7 +507,7 @@ void slave_code( int world_rank )
 		fourier_in.close();
 		*/
 
-		// correlationFT.do_fourier( );
+		//correlationFT.do_fourier( parameters.sampling_time * constants::ATU );
 
 		/*
 		ofstream fourier_out( "fourier_out.txt" );
@@ -527,26 +521,18 @@ void slave_code( int world_rank )
 	
 		correlationFT.zero_out_input();
 
-		/*
 		double omega = 0.0;
-		int n = 0;
-		for ( size_t k = 0; k < 2 * FREQ_SIZE; k += 2 )
+		for ( size_t k = 0; k < FREQ_SIZE; k++ )
 		{
-			n = k / 2;
-			specfunc_package[n] = correlationFT.get_out()[k][0] * SPECFUNC_POWERS_OF_TEN * specfunc_coeff;
-			//cout << "specfunc_package[" << k << "] = " << specfunc_package[k] << endl;
-			omega = 2.0 * M_PI * constants::LIGHTSPEED_CM * freqs[n];
+			specfunc_package[k] = correlationFT.get_out()[k] * SPECFUNC_POWERS_OF_TEN * specfunc_coeff;
+			omega = 2.0 * M_PI * constants::LIGHTSPEED_CM * freqs[k];
 
-			spectrum_package[n] = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega * (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT)) * specfunc_package[n] / SPECFUNC_POWERS_OF_TEN / specfunc_coeff;
+			spectrum_package[k] = SPECTRUM_POWERS_OF_TEN * spectrum_coeff * omega * (1.0 - exp(-constants::PLANCKCONST_REDUCED * omega / kT)) * specfunc_package[k] / SPECFUNC_POWERS_OF_TEN / specfunc_coeff;
 		}
 
 		MPI_Send( &specfunc_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
 		MPI_Send( &spectrum_package[0], FREQ_SIZE, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );
-		*/
 	}
-
-	//free( specfunc_package );
-	//free( spectrum_package );
 }
 
 int main( int argc, char* argv[] )
