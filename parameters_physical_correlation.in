@@ -7,7 +7,7 @@ $trajectory
 
 	% 5*10**(-16) s
 	% sampling_time = 20.67068666828068
-	sampling_time = 100 
+	sampling_time = 50 
 
 	MaxTrajectoryLength = 131072 
 	FREQ_MAX = 700.0
@@ -29,7 +29,7 @@ $mcparameters
 	initial_point = 8.0 0.01 0.1 1.0 
 	alpha = 2.0 
 	subchain_length = 10
-	NPOINTS = 10 
+	NPOINTS = 500 
 $end
 
 $files

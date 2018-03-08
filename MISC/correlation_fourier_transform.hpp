@@ -78,16 +78,16 @@ public:
 		//std::copy( physical_correlation.begin(), physical_correlation.end(), center );
 	//}	
 
-	//void copy_into_fourier_array( void )
-	//{
-		//int position = (MaxTrajectoryLength - physical_correlation.size()) / 2;
-		//std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] + position ); 
-	//}
-
 	void copy_into_fourier_array( void )
 	{
-		std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] );
+			int position = (MaxTrajectoryLength - physical_correlation.size()) / 2;
+			std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] + position ); 
 	}
+
+	//void copy_into_fourier_array( void )
+	//{
+		//std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] );
+	//}
 
 	void do_fourier( double dt )
 	{
