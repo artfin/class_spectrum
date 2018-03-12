@@ -6,18 +6,17 @@
 
 struct Limit
 {
-	double lb;
-	double ub;
-	
-	std::string ub_str;
+	int var_number;
 	std::string lb_str; 
+	double ub;
+	double lb;
+	std::string ub_str;
+	
 	
 	// change of variables 
 	enum chvarTypes { INFINF, FINITEINF, FINITE } chvarType;
 	enum limitTypes { DOUBLE, STRING } ubType, lbType;
 	
-	int var_number;
-
 	void show_limit( void )
 	{
 		if ( lbType == limitTypes::DOUBLE && ubType == limitTypes::DOUBLE )

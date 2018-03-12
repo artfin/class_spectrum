@@ -1,0 +1,1 @@
+g++ -std=c++11 -O2 test_distribution.cpp -o test_distribution -I/home/artfin/Downloads/hep-mc-0.5/include -I/usr/local/include/eigen3/ -I POT/ -I DIP/ -I MISC/ obj/ar_he_pes.o obj/ar_he_dip_buryak_fit.o obj/file.o obj/parameters.o obj/mcmc_generator.o -lgsl -lgslcblas 

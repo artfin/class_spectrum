@@ -86,7 +86,9 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 
 	REAL t0 =  0; 
 	REAL h = 0.1; // initial, final step size
-	REAL xend = 1e-10; // right edge of integration interval
+	// REAL xend = 1e-10; // right edge of integration interval
+ 	// первый шаг -- половинный по времени
+	REAL xend = parameters.sampling_time / 2.0;
 
 	long fmax = 1e9; // maximum number of calls of right side in gear4()
 	long aufrufe; // actual number of function calls
@@ -116,10 +118,8 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 			cout << "..." << endl; 
 		}
 
-		/*
 		std::vector<double> coords{ t0, y0[0], y0[1], y0[2], y0[3] };
 		trajectory.push_back( coords );
-		*/
 
 		transform_dipole( temp, y0[0], y0[2] );
 		dipx.push_back( temp[0] );
