@@ -10,7 +10,7 @@
 using namespace std;
 
 const int NBINS = 100;
-mt19937 generator{0};
+mt19937 generator{time(0)};
 const int DIM = 1;
 
 // функция, задающая распределение
@@ -91,6 +91,10 @@ int main()
 	vector<double> initial_guess(DIM);
 	for ( int k = 0; k < DIM; k++ )
 		cin >> initial_guess[k];
+	
+	int NRUNS;
+	cout << "Enter number of runs: " << endl;
+	cin >> NRUNS;
 
 	const int burnin = 1000;
 	cout << "Running burn-in -- " << burnin << " points" << endl;
@@ -99,41 +103,46 @@ int main()
 	for ( int k = 0; k < burnin; k++ )
 		x = gibbs_step( x, radii );
 
-	gsl_histogram * h = gsl_histogram_alloc( NBINS ); 
-	gsl_histogram_set_ranges_uniform( h, -3.0, 3.0 );
+	//gsl_histogram * h = gsl_histogram_alloc( NBINS ); 
+	//gsl_histogram_set_ranges_uniform( h, -3.0, 3.0 );
 
 	// по мере поступления точек будем считать в них значение
 	// функции g(x) и накапливать ее значения в переменной integral_value
 
-	double integral_value = 0.0;
-
-	ofstream file("sample.dat");
-	for ( int k = 0; k < npoints; k++ )
+	for ( int run_counter = 0; run_counter < NRUNS; run_counter++ )
 	{
-		x = gibbs_step( x, radii );
-		integral_value += g( x );
+		double integral_value = 0.0;
 
-		gsl_histogram_increment( h, x[0] );
+		//ofstream file("sample.dat");
+		for ( int k = 0; k < npoints; k++ )
+		{
+			x = gibbs_step( x, radii );
+			integral_value += g( x );
 
-		for ( size_t i = 0; i < x.size(); i++ )
-			file << x[i] << " ";
-		file << endl;
-	}
+			//gsl_histogram_increment( h, x[0] );
 
-	// делим накопленное значение суммы на количество точек
-	integral_value = integral_value / npoints;
-	integral_value = integral_value * sqrt(M_PI);
+			//for ( size_t i = 0; i < x.size(); i++ )
+				//file << x[i] << " ";
+			//file << endl;
+		}
 
-	gsl_histogram_normalize( h );
-	save_histogram( h, "function_histogram.dat" );
-	gsl_histogram_free( h );
+		// делим накопленное значение суммы на количество точек
+		integral_value = integral_value / npoints;
+		integral_value = integral_value * sqrt(M_PI);
 
-	cout << "Cumulative summ = " << integral_value << endl; 
+		//gsl_histogram_normalize( h );
+		//save_histogram( h, "function_histogram.dat" );
+		//gsl_histogram_free( h );
+
+		//cout << "Cumulative sum = " << integral_value << endl; 
 	
-	double exact_value = sqrt(M_PI) / 2;
-	cout << "Exact value is " << exact_value << endl; 
-	cout << "abs difference = " << abs(integral_value - exact_value) << endl;
-	cout << "rel difference = " << (integral_value - exact_value) / exact_value << endl;
+		double exact_value = sqrt(M_PI) / 2;
+		//cout << "Exact value is " << exact_value << endl; 
+		//cout << "abs difference = " << abs(integral_value - exact_value) << endl;
+		//cout << "rel difference = " << (integral_value - exact_value) / exact_value * 100 << "%" << endl;
+		double rel_difference = (integral_value - exact_value) / exact_value;
+		cout << rel_difference << endl;
+	}
 
 	return 0;
 }

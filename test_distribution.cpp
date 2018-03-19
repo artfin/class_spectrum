@@ -29,12 +29,10 @@ const int DIM = 4;
 
 // значения R в интеграле в числителе
 const double R0_num = 3.0;
-const double Rmax_num = 30.0;
+const double Rmax_num = 40.0;
 // значения R в интеграле в знаменателе
 const double R0_den = 3.0;
-const double Rmax_den = 30.0;
-
-const double VOLUME = 4.0 * M_PI/ 3.0 * pow( Rmax_den, 3 );
+const double Rmax_den = 40.0;
 
 double integrand( hep::mc_point<double> const & x, double Temperature, bool is_numerator )
 {
@@ -144,14 +142,17 @@ double MCMC( int npoints, double Temperature )
 	generator.burnin( initial_point, 5 );	
 
 	// [ R, pR, theta, pT ]
-	generator.set_point_limits()->add_limit(0, 4.0, parameters.RDIST)
-								->add_limit(1, -50.0, 50.0)
+	generator.set_point_limits()->add_limit(0, 3.0, parameters.RDIST)
+								->add_limit(1, -100.0, 100.0)
 								->add_limit(2, 0.0, 2 * M_PI)
-								->add_limit(3, -250.0, 250.0);
+								->add_limit(3, -1000.0, 1000.0);
 	
 	double summ = 0;
 	for ( int i = 0; i < npoints; i++ )
 	{
+		if ( i % 100000 == 0 )
+			cout << "(MCMC) i = " << i << endl;
+
 		VectorXd p = generator.generate_free_state_point( hamiltonian ); 
 		summ = summ + ar_he_dip_buryak_fit(p(0)) * ar_he_dip_buryak_fit(p(0));
 	}
@@ -163,10 +164,10 @@ int main()
 {
 	const double Temperature = 295.0;
 
-	double integral_value = integrate( Temperature ); // * VOLUME;
+	double integral_value = integrate( Temperature ); 
 	cout << "integral value: " << integral_value << endl;
 
-	double distribution_summ = MCMC( 1e5, Temperature );
+	double distribution_summ = MCMC( 5e6, Temperature );
 	cout << "Distribution value: " << distribution_summ << endl;
 		
 	return 0;
