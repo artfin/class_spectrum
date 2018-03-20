@@ -57,7 +57,7 @@ const double MU = MU_SI / constants::AMU;
 // ############################################
 
 
-// это такая "интерфейсная" функция. она передается методу GEAR, который
+// "интерфейсная" функция. она передается методу GEAR, который
 // осуществляет решение системы дифуров, правая часть которой, задается этой
 // функцией. Внутри мы осуществляем вызов функции, которая лежит в файле
 // matrix_he_ar.cpp, там осуществлен матричный расчет правой части дифуров.
@@ -392,13 +392,6 @@ void slave_code( int world_rank )
 		// после копирования освобождаем эти вектора внутри объекта trajectory
 		trajectory.dump_dipoles();
 
-		/*
-		cout << fixed << setprecision(10) << "dipx_backward: ";
-		for ( int k = 0; k < 10; k++ )
-			cout << dipy_backward[k] << " ";
-		cout << endl;
-		*/
-
 		// удаляем первый элемент каждого массива, т.к. он относится к начальной точке и уже находится
 		// в массивах dipx_forward, dipy_forward, dipz_forward 
 		dipx_backward.erase( dipx_backward.begin() );
@@ -414,23 +407,25 @@ void slave_code( int world_rank )
 		dipx = merge( dipx_backward, dipx_forward );	
 		dipy = merge( dipy_backward, dipy_forward );
 		dipz = merge( dipz_backward, dipz_forward );
-
+		
 		// прежде чем продолжать, добьемся того, чтобы вектора dipx, dipy и dipz были четной длины
 		// это важно для симметризации, чтобы точка симметрии лежала между двумя центральными элементами
 		// если длина массивов нечетна, то в таком случае просто избавимся от последнего элемента.
 		//
 		// .end() - 1 указывает на последний элемент, потому что в STL принято, что .end() указывает на 
 		// элемент следующий за последним!
+		/*
 		if ( dipx.size() % 2 != 0 )
 		{
 			dipx.erase( dipx.end() - 1);
 			dipy.erase( dipy.end() - 1);
 			dipz.erase( dipz.end() - 1);
 		}
+		*/
 
 		// рассчитываем корреляцию векторов дипольного момента с начальной ориентацией
 		// результат сохраняется в зарезервированном vector<double> внутри объекта correlationFT
-		correlationFT.calculate_physical_correlation( dipx, dipy, dipz, initial_dip );		
+		correlationFT.calculate_physical_correlation( dipx, dipy, dipz );
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << dipz.size() << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 		
@@ -442,27 +437,10 @@ void slave_code( int world_rank )
 		// симметризуем массив корреляций
 		// реализуется как сложение исходного массива с обращенным исходным массивом
 		// затем деление всех элементов пополам  
-		correlationFT.symmetrize( );
+ 		// correlationFT.symmetrize( );
 
 		// копируем вектор корреляций дипольного момента в подготовленный массив длиной 2^n
 		correlationFT.copy_into_fourier_array( );
-
-		// НАДО БЫ ОТКАЗАТЬСЯ ОТ МАССИВОВ dipx, dipy, dipz И СРАЗУ КОПИРОВАТЬ ИЗ BACKWARD, FORWARD
-		// МАССИВОВ В ЭТОТ ПОДГОТОВЛЕННЫЙ МАССИВ. НО СНАЧАЛА РАЗБЕРЕМСЯ С КОЛИЧЕСТВЕННОЙ ПРАВИЛЬНОСТЬЮ РЕЗУЛЬТАТА
-
-		/*
-		ofstream fourier_in( "fourier_in.txt" );
-		for ( size_t k = 0; k < parameters.MaxTrajectoryLength; k++ )
-			fourier_in << correlationFT.get_in()[k] << endl;
-		fourier_in.close();
-		*/
-
-		/*
-		ofstream fourier_out( "fourier_out.txt" );
-		for ( size_t k = 0; k < (parameters.MaxTrajectoryLength + 1)/2; k++ )
-			fourier_out << correlationFT.get_out()[k][0] << " " << correlationFT.get_out()[k][1] << endl;
-		fourier_out.close();
-		*/
 
 		// Отправляем собранный массив корреляций мастер-процессу
 		MPI_Send( &correlationFT.get_in()[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD );		

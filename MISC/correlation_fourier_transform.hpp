@@ -37,18 +37,27 @@ public:
 		//fftw_free( out );
 	}
 
-	void calculate_physical_correlation( vector<double> & dipx, vector<double> & dipy, vector<double> & dipz, vector<double> & initial_dip )
+	void calculate_physical_correlation( vector<double> & dipx, vector<double> & dipy, vector<double> & dipz )
 	{
 		int size = dipx.size();
 		assert( dipy.size() == size ); 
 		assert( dipz.size() == size ); 
 
-		physical_correlation.reserve( size );
+		physical_correlation.resize( size );
+		
+		double res = 0;
+		for ( size_t n = 0; n < size; n++ )
+		{
+			res = 0;
+			for ( size_t i = 0, j = n; j < size; i++, j++ )
+			{
+				res += dipx[i] * dipx[j];
+				res += dipy[i] * dipy[j];
+				res += dipz[i] * dipz[j];
+			}
 
-		for ( size_t k = 0; k < size; k++ ) 
-			physical_correlation.push_back( dipx[k] * initial_dip[0] + 
-									  		dipy[k] * initial_dip[1] + 
-									  		dipz[k] * initial_dip[2] );
+			physical_correlation[n] = res / (size - n + 1);
+		}
 	}
 	
 	void symmetrize( ) 
@@ -80,8 +89,15 @@ public:
 
 	void copy_into_fourier_array( void )
 	{
-			int position = (MaxTrajectoryLength - physical_correlation.size()) / 2;
-			std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] + position ); 
+		size_t i = 0;
+		size_t center_pos = MaxTrajectoryLength / 2;
+		for ( std::vector<double>::iterator it = physical_correlation.begin(); it != physical_correlation.end(); ++it, ++i )
+			in[center_pos + i] = *it;
+
+		i = 0;
+		size_t start_pos = center_pos - physical_correlation.size();	
+		for ( std::vector<double>::reverse_iterator rit = physical_correlation.rbegin(); rit != physical_correlation.rend(); ++rit, ++i )
+			in[start_pos + i] = *rit;
 	}
 
 	//void copy_into_fourier_array( void )
