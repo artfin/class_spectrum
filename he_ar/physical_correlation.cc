@@ -362,12 +362,12 @@ void slave_code( int world_rank )
 		trajectory.dump_dipoles( );
 		
 		// обращаем импульсы в полученных начальных условиях
-		trajectory.reverse_initial_conditions();
+		// trajectory.reverse_initial_conditions();
 
 		// запускаем траекторию теперь уже обращенную во времени 
 		// ( если теперь пройти по этой траектории некоторое время, остановится, снова обратить импульсы 
 		// и пойти по ней, то мы вернемся в исходную точку и пойдем по траектории, которая уже была пройдена -- обозначена как forward).
-		trajectory.run_trajectory( syst );
+		// trajectory.run_trajectory( syst );
 		
 		// если траектория оказывается длиннее, чем максимально допустимая длина, то объект класса Trajectory посылает
 		// запрос мастер-процессу на получение новой начальной точки фазового пространства. Текущий процесс зачищает 
@@ -386,17 +386,21 @@ void slave_code( int world_rank )
 
 		// если мы прошли проверку, то траектория имеет допустимую длину.
 		// копируем компоненты дипольного момента вдоль backward-траектории в виде vector<double>
+		/*
 		dipx_backward = trajectory.get_dipx();
 		dipy_backward = trajectory.get_dipy();
 		dipz_backward = trajectory.get_dipz();
+		*/
 		// после копирования освобождаем эти вектора внутри объекта trajectory
-		trajectory.dump_dipoles();
+		//trajectory.dump_dipoles();
 
 		// удаляем первый элемент каждого массива, т.к. он относится к начальной точке и уже находится
 		// в массивах dipx_forward, dipy_forward, dipz_forward 
+		/*
 		dipx_backward.erase( dipx_backward.begin() );
 		dipy_backward.erase( dipy_backward.begin() );
 		dipz_backward.erase( dipz_backward.begin() );
+		*/
 
 		// объединяем пары векторов dipx_backward и dipx_forward, предварительно обратив первый
 		// результат записываем в dipx. Аналогично с другими компонентами.
@@ -404,10 +408,12 @@ void slave_code( int world_rank )
 		// внутри функции merge размер dipx изначально резервируется при помощи метода reserve()
 		// после того, как мы закончим работу с dipx, dipy, dipz в рамках текущей итерации надо не забыть
 		// освободить место внутри них при помощи метода clear() 
+		/*
 		dipx = merge( dipx_backward, dipx_forward );	
 		dipy = merge( dipy_backward, dipy_forward );
 		dipz = merge( dipz_backward, dipz_forward );
-		
+		*/
+
 		// прежде чем продолжать, добьемся того, чтобы вектора dipx, dipy и dipz были четной длины
 		// это важно для симметризации, чтобы точка симметрии лежала между двумя центральными элементами
 		// если длина массивов нечетна, то в таком случае просто избавимся от последнего элемента.
@@ -425,14 +431,14 @@ void slave_code( int world_rank )
 
 		// рассчитываем корреляцию векторов дипольного момента с начальной ориентацией
 		// результат сохраняется в зарезервированном vector<double> внутри объекта correlationFT
-		correlationFT.calculate_physical_correlation( dipx, dipy, dipz );
+		correlationFT.calculate_physical_correlation( dipx_forward, dipy_forward, dipz_forward );
 
 		cout << "(" << world_rank << ") Processing " << trajectory.get_trajectory_counter() << " trajectory. npoints = " << dipz.size() << "; time = " << (clock() - start) / (double) CLOCKS_PER_SEC << "s" << endl;
 		
 		// теперь освобождаем вектора, хранящие дипольной момент траектории, рассчитываемой на текущей итерации
-		dipx.clear();
-		dipy.clear();
-		dipz.clear();
+		//dipx.clear();
+		//dipy.clear();
+		//dipz.clear();
 
 		// симметризуем массив корреляций
 		// реализуется как сложение исходного массива с обращенным исходным массивом

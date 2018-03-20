@@ -87,6 +87,7 @@ public:
 		//std::copy( physical_correlation.begin(), physical_correlation.end(), center );
 	//}	
 
+	/*
 	void copy_into_fourier_array( void )
 	{
 		size_t i = 0;
@@ -99,11 +100,12 @@ public:
 		for ( std::vector<double>::reverse_iterator rit = physical_correlation.rbegin(); rit != physical_correlation.rend(); ++rit, ++i )
 			in[start_pos + i] = *rit;
 	}
+	*/
 
-	//void copy_into_fourier_array( void )
-	//{
-		//std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] );
-	//}
+	void copy_into_fourier_array( void )
+	{
+		std::copy( physical_correlation.begin(), physical_correlation.end(), &in[0] );
+	}
 
 	void do_fourier( double dt )
 	{

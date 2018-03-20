@@ -29,7 +29,7 @@ $mcparameters
 	initial_point = 8.0 0.01 0.1 1.0 
 	alpha = 2.0 
 	subchain_length = 10
-	NPOINTS = 500 
+	NPOINTS = 100 
 $end
 
 $files
