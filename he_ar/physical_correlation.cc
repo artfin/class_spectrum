@@ -67,37 +67,41 @@ void syst (REAL t, REAL *y, REAL *f)
 {
 	// параметр t мы не используем, от него у нас ничего не зависит
   	(void)(t); // avoid unused parameter warning 
-	double *out = new double[4];
+	double *out = new double[6];
 
 	// вызываем функцию, вычисляющую правые части
-	rhs( out, y[0], y[1], y[2], y[3] );
+	rhs( out, y[0], y[1], y[2], y[3], y[4], y[5] );
 
 	// засовываем в нужном порядке производные
 	f[0] = out[0]; // \dot{R} 
 	f[1] = out[1]; // \dot{p_R}
 	f[2] = out[2]; // \dot{\theta}
 	f[3] = out[3]; // \dot{p_\theta}
+	f[4] = out[4];
+	f[5] = out[5];
 
 	delete [] out;
 }
 
 // вычисляем гамильтониан двухатомной системы
 // используем стандартый порядок аргументов: координата -- импульс
-// x = [ R, pR, theta, pT ]
+// x = [ R, pR, theta, pT, phi, pPhi ]
 double hamiltonian( VectorXd x )
 {
 	double R = x( 0 );
 	double pR = x( 1 );
 	double theta = x( 2 );
 	double pT = x( 3 );
+	double phi = x(4);
+	double pPhi = x(5);
 
-	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R) + ar_he_pot( R );
+	return pow(pR, 2) / (2 * MU) + pow(pT, 2) / (2 * MU * R * R) + pow(pPhi, 2) / (2 * MU * R * R * sin(theta) * sin(theta)) + ar_he_pot( R );
 }
 
 // вычисляем exp(-H/kT); принимаем Eigen::VectorXd координат и температуру
 // далее в коде строится функция с bind-ом температуры на ту, которая задана
 // в инпут-файле
-// x = [ R, pR, theta, pT ]
+// x = [ R, pR, theta, pT, phi, pPhi ]
 double numerator_integrand_( VectorXd x, const double& temperature )
 {
 	double h = hamiltonian( x );
@@ -153,15 +157,19 @@ void master_code( int world_size )
 	generator.set_point_limits()->add_limit(0, 4.0, parameters.RDIST)
 								->add_limit(1, -50.0, 50.0)
 								->add_limit(2, 0.0, 2 * M_PI)
-								->add_limit(3, -250.0, 250.0);
+								->add_limit(3, -250.0, 250.0)
+								->add_limit(4, 0.0, 2 * M_PI)
+								->add_limit(5, -250.0, 250.0);
 
 	// allocating histograms to store variables
 	generator.set_histogram_limits()->add_limit(0, 4.0, parameters.RDIST)
 									->add_limit(1, -50.0, 50.0)
 		   							->add_limit(2, 0.0, 2 * M_PI)	
-								    ->add_limit(3, -250.0, 250.0);
+								    ->add_limit(3, -250.0, 250.0)
+									->add_limit(4, 0.0, 2 * M_PI)
+									->add_limit(5, -250.0, 250.0);
 
-	vector<string> names { "R", "pR", "theta", "pT" };
+	vector<string> names { "R", "pR", "theta", "pT", "phi", "pPhi" };
 	generator.allocate_histograms( names );	
 
 	ofstream distribution_points("distribution_points.txt");

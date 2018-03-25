@@ -8,30 +8,34 @@ const double AR_MASS = 39.9623831237;
 const double MU_SI = HE_MASS * AR_MASS / ( HE_MASS + AR_MASS ) * DALTON_UNIT; 
 const double MU = MU_SI / AMU;
 
-void transform_dipole( std::vector<double> &res, double R, double theta )
+void transform_dipole( std::vector<double> &res, double R, double theta, double phi )
 {
 	// constructing simple S matrix
-	Eigen::Matrix<double, 3, 3> S;
-	S(0, 0) = 1.0;
-	S(0, 1) = 0.0;
-	S(0, 2) = 0.0;
+	//Eigen::Matrix<double, 3, 3> S;
+	//S(0, 0) = 1.0;
+	//S(0, 1) = 0.0;
+	//S(0, 2) = 0.0;
 
-	S(1, 0) = 0.0;
-	S(1, 1) = cos( theta );
-	S(1, 2) = -sin( theta );
+	//S(1, 0) = 0.0;
+	//S(1, 1) = cos( theta );
+	//S(1, 2) = -sin( theta );
 
-	S(2, 0) = 0.0;
-	S(2, 1) = sin(theta);
-	S(2, 2) = cos( theta );
+	//S(2, 0) = 0.0;
+	//S(2, 1) = sin(theta);
+	//S(2, 2) = cos( theta );
 
-	double dipz = ar_he_dip_buryak_fit( R );
-	Eigen::Vector3d mol_dipole( 0, 0, dipz );
+	//Eigen::Vector3d mol_dipole( 0, 0, dipz );
 	
-	Eigen::Vector3d lab_dipole = S * mol_dipole;
+	//Eigen::Vector3d lab_dipole = S * mol_dipole;
 		
-	res[0] = lab_dipole[0];
-	res[1] = lab_dipole[1];
-	res[2] = lab_dipole[2];
+	//res[0] = lab_dipole[0];
+	//res[1] = lab_dipole[1];
+	//res[2] = lab_dipole[2];
+	
+	double dipz = ar_he_dip_buryak_fit( R );
+	res[0] = dipz * sin(theta) * cos(phi);
+	res[1] = dipz * sin(theta) * sin(phi);
+	res[2] = dipz * cos(theta);
 }
 
 void transform_coordinates( std::tuple<double, double, double> &he_coords, 
@@ -67,10 +71,19 @@ void transform_coordinates( std::tuple<double, double, double> &he_coords,
 }
 
 
-void rhs( double* out, double R, double pR, double theta, double pTheta )
+void rhs( double* out, double R, double pR, 
+		  double theta, double pTheta,
+	   	  double phi, double pPhi	)
 {
-	out[0] = pR / MU; // dot{R} 
-	out[1] = pow(pTheta, 2) / MU / pow(R, 3) - ar_he_pot_derivative( R ); // dot{pR}
-	out[2] = pTheta / MU / pow(R, 2); // dot{theta}
-	out[3] = 0; // dot{pTheta}
+	//out[0] = pR / MU; // dot{R} 
+	//out[1] = pow(pTheta, 2) / MU / pow(R, 3) - ar_he_pot_derivative( R ); // dot{pR}
+	//out[2] = pTheta / MU / pow(R, 2); // dot{theta}
+	//out[3] = 0; // dot{pTheta}
+
+	out[0] = pR / MU; // dot{R}
+	out[1] = pTheta * pTheta / MU / pow(R, 3) + pPhi * pPhi / MU / pow(R, 3) / sin(theta) / sin(theta) - ar_he_pot_derivative(R); // dot{pR}
+	out[2] = pTheta / MU / R / R; // dot{theta}
+	out[3] = pPhi * pPhi * cos(theta) / MU / R / R / pow(sin(theta), 3); // dot{pTheta}
+	out[4] = pPhi / MU / R / R / pow(sin(theta), 2); // dot{phi}
+	out[5] = 0; // dot{pPhi}
 }

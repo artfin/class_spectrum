@@ -59,7 +59,7 @@ public:
 	std::vector<double> get_initial_dip( void )
 	{
 		std::vector<double> res( 3 );
-		transform_dipole( res, y0[0], y0[2] );
+		transform_dipole( res, y0[0], y0[2], y0[4] );
 	  	return res;	
 	}
 

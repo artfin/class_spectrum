@@ -122,7 +122,7 @@ void Trajectory::run_trajectory( dglsysfnk syst )
 		//std::vector<double> coords{ t0, y0[0], y0[1], y0[2], y0[3] };
 		//trajectory.push_back( coords );
 
-		transform_dipole( temp, y0[0], y0[2] );
+		transform_dipole( temp, y0[0], y0[2], y0[4] );
 		dipx.push_back( temp[0] );
 		dipy.push_back( temp[1] );
 		dipz.push_back( temp[2] );		

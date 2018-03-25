@@ -11,9 +11,9 @@
 
 #include <Eigen/Dense>
 
-void rhs( double* out, double R, double pR, double theta, double pTheta );
+void rhs( double* out, double R, double pR, double theta, double pTheta, double phi, double pPhi );
 void rhs_without_angle( double* out, double R, double pR, double pTheta );
-void transform_dipole( std::vector<double> &res, double R, double theta );
+void transform_dipole( std::vector<double> &res, double R, double theta, double phi );
 void transform_coordinates( std::tuple<double, double, double> &he_coords, 
 							std::tuple<double, double, double> &ar_coords, 
 							const double &R, const double &theta );
