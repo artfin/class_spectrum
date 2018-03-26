@@ -237,14 +237,14 @@ void master_code( int world_size )
 			correlation_package[k] = 0.0;
 
 		MPI_Recv( &correlation_package[0], parameters.MaxTrajectoryLength, MPI_DOUBLE, source, MPI_ANY_TAG, MPI_COMM_WORLD, &status );
-	
-		if ( received > 1 )
+
+		if ( received >= 1 )
 		{
 			for ( size_t i = 0; i < parameters.MaxTrajectoryLength; i++ )
 			{
 				// размерность корреляции дипольного момента -- квадрат диполя
 				correlation_total[i] += correlation_package[i] * constants::ADIPMOMU * constants::ADIPMOMU;
-				correlation_total[i] *= (double) (received - 1) / received;
+				correlation_total[i] *= 0.5; 
 			}
 		}
 		else

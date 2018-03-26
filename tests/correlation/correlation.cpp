@@ -38,28 +38,21 @@ void calculateCorrelation( vector<double> & input, vector<double> & output )
         for ( size_t i = 0, j = n; j < input.size(); i++, j++ )
             res = res + input[i] * input[j];
 
-        output.push_back( res / (input.size() - n + 1) );
+        output.push_back( res / (input.size() - n) );
     }
 }
 
 int main()
 {
-    vector<string> content;
-    readFromFile("../input.dat", content);
-
-    vector<double> input;
-    parseFile(content, input);
-
-    for ( size_t k = 0; k < input.size(); k++ )
-        cout << input[k] << " ";
-    cout << endl;
+    vector<double> input{1.0, 1.0, 1.0};
 
     vector<double> output;
     calculateCorrelation( input, output );
 
-    for ( size_t k = 0; k < output.size(); k++ )
-        cout << output[k] << endl;
-
+    cout << "output: ";
+    for ( size_t i = 0; i < output.size(); i++ )
+        cout << output[i] << " ";
+    cout << endl;
 
     return 0;
 }

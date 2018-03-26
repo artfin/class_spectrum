@@ -56,7 +56,7 @@ public:
 				res += dipz[i] * dipz[j];
 			}
 
-			physical_correlation[n] = res / (size - n + 1);
+			physical_correlation[n] = res / (size - n);
 		}
 	}
 	
